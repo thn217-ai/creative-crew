@@ -10,6 +10,8 @@ servers:
 tags:
   - name: health
     description: Health operations
+  - name: creative
+    description: Google ADK-powered creative development
 paths:
   /healthz:
     get:
@@ -24,6 +26,37 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /creative-treatment:
+    post:
+      operationId: createCreativeTreatment
+      tags: [creative]
+      summary: Create a structured creative treatment
+      description: Runs a real Google ADK agent backed by Gemini and returns a validated treatment.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreativeBriefInput"
+      responses:
+        "200":
+          description: Creative treatment generated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreativeTreatment"
+        "400":
+          description: Missing or invalid creative brief
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "502":
+          description: Google AI generation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +66,61 @@ components:
           type: string
       required:
         - status
+    CreativeBriefInput:
+      type: object
+      properties:
+        brief:
+          type: string
+          minLength: 20
+          maxLength: 5000
+      required:
+        - brief
+    CreativeTreatment:
+      type: object
+      properties:
+        title:
+          type: string
+        logline:
+          type: string
+        centralIdea:
+          type: string
+        emotionalDirection:
+          type: string
+        tone:
+          type: array
+          items:
+            type: string
+        narrativeApproach:
+          type: string
+        visualPrinciples:
+          type: array
+          items:
+            type: string
+        audiencePromise:
+          type: string
+        guardrails:
+          type: array
+          items:
+            type: string
+        generatedBy:
+          type: string
+          enum: [google-adk-gemini]
+      required:
+        - title
+        - logline
+        - centralIdea
+        - emotionalDirection
+        - tone
+        - narrativeApproach
+        - visualPrinciples
+        - audiencePromise
+        - guardrails
+        - generatedBy
+    ApiError:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
 

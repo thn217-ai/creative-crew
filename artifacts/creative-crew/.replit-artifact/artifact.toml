@@ -1,0 +1,28 @@
+kind = "web"
+previewPath = "/"
+title = "Creative Crew"
+description = "A filmmaker-facing workspace that turns one creative brief into a coherent production-ready pre-production package through a deterministic Google ADK and Gemini creative workflow."
+version = "1.0.0"
+id = "artifacts/creative-crew"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 18943
+
+[services.development]
+run = "pnpm --filter @workspace/creative-crew run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/creative-crew", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/creative-crew/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "18943"
+BASE_PATH = "/"

@@ -1,0 +1,1 @@
+- [Gemini model availability](gemini-model-availability.md) — live API rejects 2.5 Flash for new users; use 3.6 Flash until current runtime evidence says otherwise.

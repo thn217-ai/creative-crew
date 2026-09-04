@@ -1,6 +1,6 @@
-# [Project name]
+# Creative Crew
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+A Google ADK and Gemini-powered pre-production workspace that turns one filmmaker brief into a coherent production-ready package.
 
 ## Run & Operate
 
@@ -9,7 +9,7 @@ _Replace the heading above with the project's name, and this line with one sente
 - `pnpm run build` — typecheck + build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- Required secret: `GOOGLE_API_KEY` — server-side Gemini access
 
 ## Stack
 
@@ -22,15 +22,21 @@ _Replace the heading above with the project's name, and this line with one sente
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `artifacts/creative-crew` — React/Vite filmmaker workspace
+- `artifacts/api-server` — server-only Google ADK/Gemini runtime
+- `lib/api-spec/openapi.yaml` — API contract source of truth
+- `docs/architecture.md` — milestone architecture and external requirements
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- Prove one complete ADK/Gemini path before adding the multi-agent workflow.
+- Keep Google credentials server-only and return explicit failures without mock output.
+- Use ADK output schemas plus server validation for every creative deliverable.
+- Add project persistence only when Milestone 2 begins.
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+Milestone 1 accepts a film brief, runs a real Google ADK Creative Director backed by Gemini, and presents the validated creative treatment.
 
 ## User preferences
 
