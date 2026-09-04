@@ -1,0 +1,685 @@
+You are building a NEW project for the Google Cloud Agentic Cinema Hackathon.
+
+Do not modify or reuse the existing Farah Campaign Execution Agent repository as the hackathon submission.
+
+The new project may borrow product and orchestration principles, but it must be a fresh cinema-specific implementation created during the hackathon period.
+
+PROJECT GOAL
+
+Build a functional web application where a filmmaker gives one creative brief and an AI creative crew turns it into a coherent pre-production package.
+
+Working product concept:
+
+ONE BRIEF
+→ AI CREATIVE CREW
+→ ONE PRODUCTION-READY PRE-PRODUCTION PACKAGE
+
+The user should feel like they are working with a capable creative organization, not manually operating a collection of AI chatbots.
+
+HACKATHON TRACK
+
+Replit Track.
+
+Mandatory requirements:
+
+* Build using Replit Agent.
+* Finished project must be hosted and deployed directly on Replit.
+* Final URL must use a Replit-hosted domain accepted by the hackathon.
+* Use Google Cloud AI only.
+* Use Gemini.
+* Use Google Agent Development Kit / Google Cloud Agent tooling.
+* Do not use OpenAI.
+* Do not use Anthropic.
+* Do not use Microsoft AI.
+* Do not use AWS AI.
+* Do not use external AI agent frameworks.
+* Third-party non-AI libraries are allowed where needed.
+
+The source repository must clearly demonstrate actual Google AI/agent runtime usage.
+
+Do not merely mention Gemini or ADK in the README.
+
+FIRST RULE
+
+DO NOT BUILD EVERYTHING AT ONCE.
+
+Work in verified milestones.
+
+Do not call a milestone complete until the actual running application demonstrates it.
+
+Do not fake integrations.
+
+Do not hard-code outputs and present them as AI-generated.
+
+Do not create placeholder buttons and describe them as functional.
+
+BEFORE CODING
+
+First:
+
+1. Review the current Google ADK documentation.
+2. Review current Gemini / Vertex AI integration requirements.
+3. Review Replit deployment requirements.
+4. Confirm the architecture you intend to use.
+5. Identify credentials or external configuration required.
+6. Identify which Google Cloud services must be enabled.
+7. Produce a concise implementation plan.
+8. Then begin Milestone 1.
+
+Prefer current official documentation over assumptions from model memory.
+
+PRODUCT
+
+Working name:
+
+CREATIVE CREW
+
+Temporary name is acceptable. Architecture matters more than branding at this stage.
+
+Target user:
+
+Filmmakers, directors, producers, screenwriters, creative agencies, and production teams.
+
+Core problem:
+
+Turning a loose creative idea into something production-ready requires multiple kinds of expertise:
+
+* concept development
+* writing
+* visual direction
+* scene planning
+* production planning
+* consistency checking
+
+General-purpose AI can generate individual pieces.
+
+This product coordinates those pieces into one coherent workflow.
+
+CORE USER JOURNEY
+
+User enters a creative brief.
+
+Example:
+
+“Create a 60-second launch film for a contemporary Saudi coffee brand in Riyadh. The film should feel youthful, intimate and cinematic without relying on stereotypical Saudi imagery.”
+
+The system:
+
+1. Understands the brief.
+2. Creates structured project state.
+3. Determines the necessary creative work.
+4. Coordinates specialized agents.
+5. Produces a creative treatment.
+6. Produces a script.
+7. Produces visual direction.
+8. Produces a scene breakdown.
+9. Produces a shot list.
+10. Produces production requirements.
+11. Runs creative QA.
+12. Presents everything as one coherent pre-production package.
+
+AGENT MODEL
+
+Start with ONLY these agents:
+
+1. Orchestrator
+
+Responsibilities:
+
+* understand user intent
+* create structured project state
+* determine workflow
+* route tasks
+* maintain dependencies
+* determine when work is complete
+
+The user should NOT manually select agents.
+
+2. Creative Director Agent
+
+Produces:
+
+* central creative idea
+* tone
+* emotional direction
+* creative treatment
+* campaign/film coherence
+* visual and narrative principles
+
+3. Writer Agent
+
+Produces:
+
+* script
+* voiceover where relevant
+* dialogue where relevant
+* scene-level narrative
+* messaging
+
+4. Art Director Agent
+
+Produces:
+
+* visual language
+* palette direction
+* environment
+* style references
+* composition principles
+* wardrobe/production-design direction where relevant
+
+5. Production Planner Agent
+
+Produces:
+
+* scene requirements
+* location requirements
+* talent requirements
+* props
+* production dependencies
+* shot list
+* practical execution notes
+
+6. Creative QA Agent
+
+Evaluates outputs against the original brief.
+
+Checks:
+
+* alignment with intent
+* contradictions
+* visual consistency
+* story consistency
+* production feasibility
+* unwanted clichés
+* missing requirements
+* continuity problems
+
+QA should return structured findings.
+
+Do not let the QA agent generate endless alternatives.
+
+Its job is to determine whether work passes or requires correction.
+
+IMPORTANT ARCHITECTURAL PRINCIPLE
+
+Agents should operate inside a deterministic execution workflow.
+
+Do NOT create:
+
+“Several LLMs talking to each other until something interesting happens.”
+
+Use:
+
+structured state
++
+defined tasks
++
+defined outputs
++
+dependencies
++
+completion criteria
++
+QA
+
+STRUCTURED PROJECT STATE
+
+Maintain a structured project object.
+
+Example:
+
+project:
+title:
+objective:
+duration:
+audience:
+location:
+tone:
+constraints:
+approved_decisions:
+rejected_decisions:
+
+creative_direction:
+concept:
+emotional_direction:
+visual_language:
+narrative_principles:
+
+script:
+scenes:
+
+production:
+locations:
+talent:
+props:
+shot_list:
+dependencies:
+
+qa:
+status:
+issues:
+corrections:
+
+Do not depend entirely on conversational history.
+
+USER EXPERIENCE
+
+This should NOT look primarily like a chatbot.
+
+Use:
+
+CREATIVE BRIEF
++
+CREATIVE FEED
++
+PROJECT WORKSPACE
++
+FINAL PACKAGE
+
+Suggested layout:
+
+Left / main workspace:
+
+* Project Overview
+* Treatment
+* Script
+* Visual Direction
+* Storyboard
+* Production Plan
+* Final Package
+
+Secondary surface:
+Creative Feed
+
+CREATIVE FEED
+
+The Creative Feed should expose meaningful project activity.
+
+Good examples:
+
+Creative Director:
+“Creative treatment complete.”
+
+Writer:
+“Script structured into six scenes.”
+
+Art Director:
+“Visual system defined.”
+
+Production:
+“Shot list and location requirements complete.”
+
+Creative QA:
+“Two continuity issues detected. One requires revision.”
+
+Do not expose:
+
+* chain-of-thought
+* hidden reasoning
+* raw prompts
+* token counts
+* meaningless agent conversation
+* every API call
+
+The feed is a project decision/activity surface, not AI theatre.
+
+USER INTERVENTION
+
+Allow the user to make a meaningful creative change.
+
+Example:
+
+“Keep the concept, but make it younger and less luxurious.”
+
+The system should determine which downstream outputs are affected.
+
+At minimum demonstrate basic dependency awareness:
+
+User changes creative direction
+→ affected script or visual direction becomes outdated
+→ relevant agents rerun
+→ QA reruns
+→ package updates
+
+Do not rebuild unaffected work unnecessarily when avoidable.
+
+STORYBOARD
+
+After the core workflow is stable, add a basic storyboard layer.
+
+Preferred approach:
+
+* use approved Google AI image-generation capability available under hackathon rules
+* generate a small number of storyboard frames
+* connect each frame to a scene
+* keep visual consistency as much as feasible
+
+Storyboard generation is secondary to the core agent workflow.
+
+Do not block the whole project if image generation becomes technically risky.
+
+DEFINITION OF DONE
+
+The project is NOT done when Gemini returns text.
+
+The project is done when a user can:
+
+1. open the deployed Replit web app
+2. enter a creative brief
+3. trigger the agent workflow
+4. see real progress
+5. receive a structured treatment
+6. receive a script
+7. receive visual direction
+8. receive a production plan / shot list
+9. see QA results
+10. review one coherent final pre-production package
+
+If storyboard generation is implemented:
+
+11. see storyboard frames connected to scenes
+
+MILESTONE 1
+
+Build the smallest possible end-to-end working system:
+
+WEB UI
+→ GOOGLE ADK
+→ GEMINI
+→ STRUCTURED CREATIVE TREATMENT
+→ DISPLAYED IN UI
+
+Acceptance criteria:
+
+* real Gemini call
+* real Google ADK usage
+* no mocked response
+* deployed app works
+* error states are visible
+* API credentials are not exposed client-side
+
+Do not continue until this passes.
+
+MILESTONE 2
+
+Add structured project state.
+
+Input:
+
+creative brief
+
+Output:
+
+* project understanding
+* objective
+* constraints
+* tone
+* duration
+* location
+* audience
+* initial production assumptions
+
+Acceptance criteria:
+
+* structured schema
+* validated output
+* state persists during the project session
+* UI displays the interpreted brief
+
+MILESTONE 3
+
+Add the agent workflow:
+
+Orchestrator
+→ Creative Director
+→ Writer
+→ Art Director
+→ Production Planner
+→ Creative QA
+
+Acceptance criteria:
+
+Each agent must:
+
+* have a distinct responsibility
+* receive appropriate upstream context
+* produce structured output
+* hand useful work downstream
+
+Do not add extra agents merely to make the architecture appear more complex.
+
+MILESTONE 4
+
+Build the product experience.
+
+Turn technical outputs into a coherent workspace.
+
+Required surfaces:
+
+* Brief
+* Project Overview
+* Treatment
+* Script
+* Visual Direction
+* Production Plan
+* QA
+* Final Package
+
+Add a Creative Feed showing major workflow events.
+
+Acceptance criteria:
+
+* understandable without technical knowledge
+* no exposed implementation jargon
+* clear loading/progress states
+* clear failures
+* coherent visual hierarchy
+* responsive web layout
+
+MILESTONE 5
+
+Add one meaningful revision workflow.
+
+Example:
+
+User changes:
+
+“Make this younger and less luxurious.”
+
+System:
+
+* records the new decision
+* determines affected outputs
+* reruns appropriate work
+* reruns QA
+* updates the final package
+
+Acceptance criteria:
+
+Demonstrate that the product manages downstream consequences rather than forcing the user to manually prompt every specialist.
+
+MILESTONE 6 — OPTIONAL VISUAL WOW
+
+If core milestones are stable:
+
+Generate several storyboard frames using permitted Google AI tooling.
+
+Do not introduce external AI providers.
+
+Connect storyboard frames clearly to scenes.
+
+Do not sacrifice stability for this feature.
+
+TECHNICAL SAFETY
+
+Use server-side handling for secrets.
+
+Never expose:
+
+* Gemini credentials
+* Google Cloud service credentials
+* API keys
+* service account secrets
+
+Use environment variables / Replit Secrets.
+
+Do not commit secrets to Git.
+
+ERROR HANDLING
+
+Handle at minimum:
+
+* Gemini unavailable
+* malformed model output
+* agent failure
+* timeout
+* missing brief
+* downstream agent failure
+* QA failure
+
+Do not silently show fake success.
+
+HACKATHON COMPLIANCE
+
+Before finalizing, verify:
+
+* project created during contest period
+* built using Replit Agent
+* deployed on Replit
+* hosted URL works
+* Google AI is actually invoked at runtime
+* Google ADK / approved Google Agent tooling is actually invoked
+* no prohibited AI model/provider exists in dependencies or runtime
+* public repository exists
+* repository contains complete source code
+* README explains setup
+* open-source LICENSE file exists
+* license is clearly visible
+* no secrets committed
+* project can be tested by judges
+* English is supported
+* demo accurately represents working functionality
+
+PUBLIC REPOSITORY
+
+Prepare repository with:
+
+README.md
+LICENSE
+src/
+docs/
+
+README must contain:
+
+1. Problem
+2. Product
+3. How it works
+4. Architecture
+5. Google Cloud / Gemini usage
+6. Google ADK usage
+7. Replit usage
+8. Setup instructions
+9. Environment variables
+10. Deployment instructions
+11. Example workflow
+12. Known limitations
+13. Hackathon learnings
+
+Make runtime Google usage easy for judges to identify in the code.
+
+THREE-MINUTE DEMO TARGET
+
+Design the product so this demo can be recorded:
+
+0:00–0:20
+Explain problem.
+
+0:20–0:35
+Enter creative brief.
+
+0:35–1:15
+Show orchestrated creative crew working.
+
+1:15–1:40
+Show treatment, script and visual direction.
+
+1:40–2:00
+Change one creative decision.
+
+2:00–2:20
+Show downstream update and QA.
+
+2:20–2:40
+Show final production package / storyboard.
+
+2:40–3:00
+Show architecture and conclusion.
+
+PRODUCT THESIS
+
+Do not position this as:
+
+“AI that writes scripts.”
+
+Do not position it as:
+
+“Several Gemini agents.”
+
+Position it as:
+
+A creative production system that coordinates specialized intelligence to move a filmmaker from intent to a production-ready outcome.
+
+Core statement:
+
+ONE BRIEF.
+ONE AI CREATIVE CREW.
+ONE PRODUCTION-READY PACKAGE.
+
+SCOPE GUARD
+
+DO NOT BUILD:
+
+* authentication unless essential
+* billing
+* subscriptions
+* marketplace
+* social network
+* publishing
+* CRM
+* complete video editor
+* full filmmaking suite
+* generic agent marketplace
+* long-term memory architecture unless essential
+* model router
+* external AI providers
+* Farah integration
+* Paradise
+* QCI
+* campaign marketing system
+* 10+ agents
+
+Anything that does not materially improve:
+
+BRIEF
+→ ORCHESTRATION
+→ CREATIVE WORK
+→ QA
+→ PRE-PRODUCTION PACKAGE
+
+is deferred.
+
+OPERATING RULE
+
+At the end of every milestone report:
+
+WHAT WORKS
+WHAT DOES NOT WORK
+WHAT WAS ACTUALLY TESTED
+FILES CHANGED
+CREDENTIALS OR CONFIG NEEDED
+REGRESSIONS
+NEXT MILESTONE
+
+Never say “done” because code was written.
+
+Only say a milestone is complete after testing the actual running application.
