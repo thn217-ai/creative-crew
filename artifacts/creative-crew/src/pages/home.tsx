@@ -43,7 +43,7 @@ export default function Home() {
 
   const { signOut } = useClerk();
   const { user, isLoaded: isUserLoaded, isSignedIn } = useUser();
-  const basePath = import.meta.env.BASE_URL?.replace(/\/$/, '') || '';
+  const basePath = import.meta.env?.BASE_URL?.replace(/\/$/, '') || '';
 
   const workspace = useGetCreativeWorkspace({
     query: {
@@ -385,7 +385,7 @@ export default function Home() {
         
         <div className="relative z-10 flex-1 p-8 md:p-16 max-w-4xl mx-auto w-full flex flex-col">
           {error && (
-            <div className="mb-8 p-6 bg-destructive/10 border border-destructive/20 rounded-lg flex flex-col gap-2">
+            <div role="alert" className="mb-8 p-6 bg-destructive/10 border border-destructive/20 rounded-lg flex flex-col gap-2">
               <h3 className="text-destructive font-bold text-lg">System Fault</h3>
               <p className="text-destructive/80 text-sm">
                 {error.data?.error || "Failed to generate treatment."}
@@ -412,7 +412,7 @@ export default function Home() {
           )}
 
           {(isPending || selectedProject.isLoading) && (
-            <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto w-full space-y-12 animate-in fade-in duration-1000">
+            <div role="status" aria-label="Treatment progress" aria-live="polite" className="flex-1 flex flex-col justify-center max-w-2xl mx-auto w-full space-y-12 animate-in fade-in duration-1000">
               <div className="space-y-4">
                 <div className="flex items-center gap-3 text-primary">
                   <Sparkles className="w-5 h-5 animate-pulse" />
