@@ -6,7 +6,9 @@ A Google ADK and Gemini-powered pre-production workspace that turns one filmmake
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
 - `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
+- `pnpm run test` — run the API and Creative Crew treatment regression checks
+- `pnpm run validate` — release gate: full typecheck + treatment regression checks
+- `pnpm run build` — run the release gate, then build all packages
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
 - `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
 - Required secret: `GOOGLE_API_KEY` — server-side Gemini access
