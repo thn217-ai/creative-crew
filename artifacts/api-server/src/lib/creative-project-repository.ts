@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { and, desc, eq } from "drizzle-orm";
+import { and, desc, eq, isNull } from "drizzle-orm";
 import {
   adkSessionsTable,
   creativeProjectsTable,
@@ -26,34 +26,54 @@ export type PersistedTreatmentRevision = {
 
 type StartGenerationInput = {
   projectId: string;
-  ownerId: string;
+  owner: CreationOwner;
   brief: string;
   sessionId: string;
   userId: string;
+};
+
+export type OwnerContext =
+  | { kind: "guest"; workspaceId: string }
+  | { kind: "account"; accountUserId: string };
+
+export type CreationOwner = {
+  workspaceId: string;
+  accountUserId: string | null;
 };
 
 export interface CreativeProjectRepository {
   startGeneration(input: StartGenerationInput): Promise<void>;
   completeGeneration(
     projectId: string,
-    ownerId: string,
+    workspaceId: string,
     sessionId: string,
     treatment: unknown,
   ): Promise<PersistedCreativeProject>;
   failGeneration(
     projectId: string,
-    ownerId: string,
+    workspaceId: string,
     sessionId: string,
   ): Promise<void>;
-  listProjects(ownerId: string): Promise<PersistedCreativeProject[]>;
+  listProjects(owner: OwnerContext): Promise<PersistedCreativeProject[]>;
   getProject(
     projectId: string,
-    ownerId: string,
+    owner: OwnerContext,
   ): Promise<PersistedCreativeProject | null>;
   listTreatments(
     projectId: string,
-    ownerId: string,
+    owner: OwnerContext,
   ): Promise<PersistedTreatmentRevision[]>;
+  countUnclaimedProjects(workspaceId: string): Promise<number>;
+  claimWorkspace(workspaceId: string, accountUserId: string): Promise<number>;
+}
+
+function ownerCondition(owner: OwnerContext) {
+  return owner.kind === "account"
+    ? eq(creativeProjectsTable.accountUserId, owner.accountUserId)
+    : and(
+        eq(creativeProjectsTable.ownerId, owner.workspaceId),
+        isNull(creativeProjectsTable.accountUserId),
+      );
 }
 
 function toProject(row: {
@@ -75,7 +95,8 @@ export const creativeProjectRepository: CreativeProjectRepository = {
     await db.transaction(async (tx) => {
       await tx.insert(creativeProjectsTable).values({
         id: input.projectId,
-        ownerId: input.ownerId,
+        ownerId: input.owner.workspaceId,
+        accountUserId: input.owner.accountUserId,
         brief: input.brief,
         status: "generating",
       });
@@ -88,14 +109,40 @@ export const creativeProjectRepository: CreativeProjectRepository = {
     });
   },
 
-  async completeGeneration(projectId, ownerId, sessionId, treatment) {
+  async completeGeneration(projectId, workspaceId, sessionId, treatment) {
     const completedProject = await db.transaction(async (tx) => {
+      // ownerId is the immutable browser workspace and sessionId is a private,
+      // per-run capability. Together with the project/session relationship they
+      // let an active run finish safely even if account ownership is claimed.
+      const [activeRun] = await tx
+        .select({ projectId: creativeProjectsTable.id })
+        .from(creativeProjectsTable)
+        .innerJoin(
+          adkSessionsTable,
+          eq(adkSessionsTable.projectId, creativeProjectsTable.id),
+        )
+        .where(
+          and(
+            eq(creativeProjectsTable.id, projectId),
+            eq(creativeProjectsTable.ownerId, workspaceId),
+            eq(creativeProjectsTable.status, "generating"),
+            eq(adkSessionsTable.id, sessionId),
+            eq(adkSessionsTable.status, "running"),
+          ),
+        )
+        .for("update");
+
+      if (!activeRun) {
+        throw new Error("Creative generation was no longer active.");
+      }
+
       const [completedSession] = await tx
         .update(adkSessionsTable)
         .set({ status: "completed" })
         .where(
           and(
             eq(adkSessionsTable.id, sessionId),
+            eq(adkSessionsTable.projectId, projectId),
             eq(adkSessionsTable.status, "running"),
           ),
         )
@@ -106,7 +153,7 @@ export const creativeProjectRepository: CreativeProjectRepository = {
         .where(
           and(
             eq(creativeProjectsTable.id, projectId),
-            eq(creativeProjectsTable.ownerId, ownerId),
+            eq(creativeProjectsTable.ownerId, workspaceId),
             eq(creativeProjectsTable.status, "generating"),
           ),
         )
@@ -135,36 +182,63 @@ export const creativeProjectRepository: CreativeProjectRepository = {
     };
   },
 
-  async failGeneration(projectId, ownerId, sessionId) {
+  async failGeneration(projectId, workspaceId, sessionId) {
     await db.transaction(async (tx) => {
-      await tx
+      const [activeRun] = await tx
+        .select({ projectId: creativeProjectsTable.id })
+        .from(creativeProjectsTable)
+        .innerJoin(
+          adkSessionsTable,
+          eq(adkSessionsTable.projectId, creativeProjectsTable.id),
+        )
+        .where(
+          and(
+            eq(creativeProjectsTable.id, projectId),
+            eq(creativeProjectsTable.ownerId, workspaceId),
+            eq(creativeProjectsTable.status, "generating"),
+            eq(adkSessionsTable.id, sessionId),
+            eq(adkSessionsTable.status, "running"),
+          ),
+        )
+        .for("update");
+
+      if (!activeRun) return;
+
+      const [failedSession] = await tx
         .update(adkSessionsTable)
         .set({ status: "failed" })
         .where(
           and(
             eq(adkSessionsTable.id, sessionId),
+              eq(adkSessionsTable.projectId, projectId),
             eq(adkSessionsTable.status, "running"),
           ),
-        );
-      await tx
+        )
+        .returning({ id: adkSessionsTable.id });
+      const [failedProject] = await tx
         .update(creativeProjectsTable)
         .set({ status: "failed" })
         .where(
           and(
             eq(creativeProjectsTable.id, projectId),
-            eq(creativeProjectsTable.ownerId, ownerId),
+            eq(creativeProjectsTable.ownerId, workspaceId),
             eq(creativeProjectsTable.status, "generating"),
           ),
-        );
+        )
+        .returning({ id: creativeProjectsTable.id });
+
+      if (!failedSession || !failedProject) {
+        throw new Error("Creative generation was no longer active.");
+      }
     });
   },
 
-  async listProjects(ownerId) {
+  async listProjects(owner) {
     const [projects, treatments] = await Promise.all([
       db
         .select()
         .from(creativeProjectsTable)
-        .where(eq(creativeProjectsTable.ownerId, ownerId))
+        .where(ownerCondition(owner))
         .orderBy(desc(creativeProjectsTable.createdAt)),
       db.select({ treatment: creativeTreatmentsTable })
         .from(creativeTreatmentsTable)
@@ -172,7 +246,7 @@ export const creativeProjectRepository: CreativeProjectRepository = {
           creativeProjectsTable,
           and(
             eq(creativeProjectsTable.id, creativeTreatmentsTable.projectId),
-            eq(creativeProjectsTable.ownerId, ownerId),
+            ownerCondition(owner),
           ),
         )
         .orderBy(desc(creativeTreatmentsTable.createdAt)),
@@ -195,7 +269,7 @@ export const creativeProjectRepository: CreativeProjectRepository = {
     );
   },
 
-  async getProject(projectId, ownerId) {
+  async getProject(projectId, owner) {
     const [row] = await db
       .select({
         project: creativeProjectsTable,
@@ -209,7 +283,7 @@ export const creativeProjectRepository: CreativeProjectRepository = {
       .where(
         and(
           eq(creativeProjectsTable.id, projectId),
-          eq(creativeProjectsTable.ownerId, ownerId),
+          ownerCondition(owner),
         ),
       )
       .orderBy(desc(creativeTreatmentsTable.createdAt))
@@ -218,7 +292,7 @@ export const creativeProjectRepository: CreativeProjectRepository = {
     return row ? toProject(row) : null;
   },
 
-  async listTreatments(projectId, ownerId) {
+  async listTreatments(projectId, owner) {
     const rows = await db
       .select({
         id: creativeTreatmentsTable.id,
@@ -230,12 +304,39 @@ export const creativeProjectRepository: CreativeProjectRepository = {
         creativeProjectsTable,
         and(
           eq(creativeProjectsTable.id, creativeTreatmentsTable.projectId),
-          eq(creativeProjectsTable.ownerId, ownerId),
+            ownerCondition(owner),
         ),
       )
       .where(eq(creativeTreatmentsTable.projectId, projectId))
       .orderBy(desc(creativeTreatmentsTable.createdAt));
 
     return rows;
+  },
+
+  async countUnclaimedProjects(workspaceId) {
+    const rows = await db
+      .select({ id: creativeProjectsTable.id })
+      .from(creativeProjectsTable)
+      .where(
+        and(
+          eq(creativeProjectsTable.ownerId, workspaceId),
+          isNull(creativeProjectsTable.accountUserId),
+        ),
+      );
+    return rows.length;
+  },
+
+  async claimWorkspace(workspaceId, accountUserId) {
+    const claimed = await db
+      .update(creativeProjectsTable)
+      .set({ accountUserId })
+      .where(
+        and(
+          eq(creativeProjectsTable.ownerId, workspaceId),
+          isNull(creativeProjectsTable.accountUserId),
+        ),
+      )
+      .returning({ id: creativeProjectsTable.id });
+    return claimed.length;
   },
 };

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { getAuth } from "@clerk/express";
 import { Router, type IRouter } from "express";
 import type { Request, Response } from "express";
 import {
@@ -8,6 +9,9 @@ import {
 import {
   CreateCreativeTreatmentBody,
   CreateCreativeTreatmentResponse,
+  ClaimCreativeWorkspaceBody,
+  ClaimCreativeWorkspaceResponse,
+  GetCreativeWorkspaceResponse,
   GetCreativeProjectParams,
   GetCreativeProjectResponse,
   ListCreativeProjectTreatmentsParams,
@@ -18,37 +22,20 @@ import { z } from "zod/v4";
 import {
   creativeProjectRepository,
   type CreativeProjectRepository,
+  type OwnerContext,
 } from "../lib/creative-project-repository";
+import {
+  getExistingWorkspaceId,
+  getOrCreateWorkspaceId,
+} from "../lib/creative-workspace-cookie";
+import { isSameOriginJsonRequest } from "../lib/same-origin-json";
+import { getClerkProxyHost } from "../middlewares/clerkProxyMiddleware";
 
 const router: IRouter = Router();
 
 const MODEL = "gemini-3.6-flash";
 const APP_NAME = "creative-crew";
 const RUN_TIMEOUT_MS = 90_000;
-const WORKSPACE_COOKIE = "creative_workspace";
-const UUID_PATTERN =
-  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-
-function getWorkspaceId(req: Request, res: Response): string {
-  const candidate = (req.signedCookies as Record<string, unknown> | undefined)?.[
-    WORKSPACE_COOKIE
-  ];
-  if (typeof candidate === "string" && UUID_PATTERN.test(candidate)) {
-    return candidate;
-  }
-
-  const workspaceId = randomUUID();
-  res.cookie(WORKSPACE_COOKIE, workspaceId, {
-    signed: true,
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env["NODE_ENV"] === "production",
-    maxAge: 365 * 24 * 60 * 60 * 1000,
-    path: "/",
-  });
-  return workspaceId;
-}
-
 export const adkTreatmentSchema = z.object({
   title: z.string(),
   logline: z.string(),
@@ -153,15 +140,99 @@ type TreatmentGenerator = (
   context: AdkRunContext,
 ) => Promise<unknown>;
 
+export type VerifiedAuthResolver = (req: Request) => {
+  userId: string | null;
+};
+
+const resolveVerifiedAuth: VerifiedAuthResolver = (req) => ({
+  userId: getAuth(req).userId,
+});
+
+function getReadOwner(
+  req: Request,
+  res: Response,
+  authResolver: VerifiedAuthResolver,
+): OwnerContext {
+  const accountUserId = authResolver(req).userId;
+  return accountUserId
+    ? { kind: "account", accountUserId }
+    : { kind: "guest", workspaceId: getOrCreateWorkspaceId(req, res) };
+}
+
 export function createCreativeTreatmentRouter(
   treatmentGenerator: TreatmentGenerator = generateTreatment,
   repository: CreativeProjectRepository = creativeProjectRepository,
+  authResolver: VerifiedAuthResolver = resolveVerifiedAuth,
+  canonicalHostResolver: (req: Request) => string | undefined =
+    getClerkProxyHost,
 ): IRouter {
   const treatmentRouter: IRouter = Router();
 
+  treatmentRouter.use((_req, res, next) => {
+    res.set("Cache-Control", "no-store");
+    next();
+  });
+
+  treatmentRouter.get(
+    "/creative-workspace",
+    async (req, res): Promise<void> => {
+      const signedIn = Boolean(authResolver(req).userId);
+      const workspaceId = getExistingWorkspaceId(req);
+      const unclaimedProjectCount = workspaceId
+        ? await repository.countUnclaimedProjects(workspaceId)
+        : 0;
+      res.json(
+        GetCreativeWorkspaceResponse.parse({
+          signedIn,
+          unclaimedProjectCount,
+        }),
+      );
+    },
+  );
+
+  treatmentRouter.post(
+    "/creative-workspace/claim",
+    async (req, res): Promise<void> => {
+      const input = ClaimCreativeWorkspaceBody.safeParse(req.body);
+      if (!input.success) {
+        res.status(400).json({ error: "Confirm the workspace claim." });
+        return;
+      }
+
+      const accountUserId = authResolver(req).userId;
+      if (!accountUserId) {
+        res.status(401).json({ error: "Sign in before saving this workspace." });
+        return;
+      }
+
+      const canonicalHost = canonicalHostResolver(req);
+      if (
+        !canonicalHost ||
+        !isSameOriginJsonRequest(req, canonicalHost)
+      ) {
+        res.status(403).json({ error: "Cross-site request rejected." });
+        return;
+      }
+
+      const workspaceId = getExistingWorkspaceId(req);
+      if (!workspaceId) {
+        res.status(403).json({ error: "A valid browser workspace is required." });
+        return;
+      }
+
+      const claimedProjectCount = await repository.claimWorkspace(
+        workspaceId,
+        accountUserId,
+      );
+      res.json(
+        ClaimCreativeWorkspaceResponse.parse({ claimedProjectCount }),
+      );
+    },
+  );
+
   treatmentRouter.get("/creative-projects", async (req, res): Promise<void> => {
-    const ownerId = getWorkspaceId(req, res);
-    const projects = await repository.listProjects(ownerId);
+    const owner = getReadOwner(req, res, authResolver);
+    const projects = await repository.listProjects(owner);
     res.json(ListCreativeProjectsResponse.parse(projects));
   });
 
@@ -174,10 +245,10 @@ export function createCreativeTreatmentRouter(
         return;
       }
 
-      const ownerId = getWorkspaceId(req, res);
+      const owner = getReadOwner(req, res, authResolver);
       const project = await repository.getProject(
         params.data.projectId,
-        ownerId,
+        owner,
       );
       if (!project) {
         res.status(404).json({ error: "Creative project not found." });
@@ -197,10 +268,10 @@ export function createCreativeTreatmentRouter(
         return;
       }
 
-      const ownerId = getWorkspaceId(req, res);
+      const owner = getReadOwner(req, res, authResolver);
       const project = await repository.getProject(
         params.data.projectId,
-        ownerId,
+        owner,
       );
       if (!project) {
         res.status(404).json({ error: "Creative project not found." });
@@ -209,7 +280,7 @@ export function createCreativeTreatmentRouter(
 
       const treatments = await repository.listTreatments(
         params.data.projectId,
-        ownerId,
+        owner,
       );
       res.json(ListCreativeProjectTreatmentsResponse.parse(treatments));
     },
@@ -228,7 +299,14 @@ export function createCreativeTreatmentRouter(
         return;
       }
 
-      const ownerId = getWorkspaceId(req, res);
+      const canonicalHost = canonicalHostResolver(req);
+      if (!canonicalHost || !isSameOriginJsonRequest(req, canonicalHost)) {
+        res.status(403).json({ error: "Cross-site request rejected." });
+        return;
+      }
+
+      const workspaceId = getOrCreateWorkspaceId(req, res);
+      const accountUserId = authResolver(req).userId;
       const projectId = randomUUID();
       const sessionId = randomUUID();
       const userId = `filmmaker-${projectId}`;
@@ -236,7 +314,7 @@ export function createCreativeTreatmentRouter(
       try {
         await repository.startGeneration({
           projectId,
-          ownerId,
+          owner: { workspaceId, accountUserId },
           brief: input.data.brief,
           sessionId,
           userId,
@@ -253,14 +331,14 @@ export function createCreativeTreatmentRouter(
         const treatment = adkTreatmentSchema.parse(generated);
         const project = await repository.completeGeneration(
           projectId,
-          ownerId,
+          workspaceId,
           sessionId,
           treatment,
         );
         res.status(201).json(CreateCreativeTreatmentResponse.parse(project));
       } catch (error) {
         try {
-          await repository.failGeneration(projectId, ownerId, sessionId);
+          await repository.failGeneration(projectId, workspaceId, sessionId);
         } catch (persistenceError) {
           req.log.error(
             { err: persistenceError, projectId },

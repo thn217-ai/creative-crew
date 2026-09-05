@@ -5,6 +5,21 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+export interface CreativeWorkspace {
+  signedIn: boolean;
+  /** @minimum 0 */
+  unclaimedProjectCount: number;
+}
+
+export interface CreativeWorkspaceClaimInput {
+  confirm: true;
+}
+
+export interface CreativeWorkspaceClaim {
+  /** @minimum 0 */
+  claimedProjectCount: number;
+}
+
 export interface HealthStatus {
   status: string;
 }

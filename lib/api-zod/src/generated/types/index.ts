@@ -13,4 +13,7 @@ export * from './creativeProjectStatus';
 export * from './creativeTreatment';
 export * from './creativeTreatmentGeneratedBy';
 export * from './creativeTreatmentRevision';
+export * from './creativeWorkspace';
+export * from './creativeWorkspaceClaim';
+export * from './creativeWorkspaceClaimInput';
 export * from './healthStatus';

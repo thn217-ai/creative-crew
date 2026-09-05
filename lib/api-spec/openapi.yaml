@@ -31,7 +31,7 @@ paths:
       operationId: createCreativeTreatment
       tags: [creative]
       summary: Create a structured creative treatment
-      description: Runs a real Google ADK agent backed by Gemini and returns a validated treatment.
+      description: Runs a real Google ADK agent backed by Gemini and saves a treatment to the signed-in account, or to the signed anonymous browser workspace.
       requestBody:
         required: true
         content:
@@ -57,12 +57,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Generation requires a same-origin JSON request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /creative-projects:
     get:
       operationId: listCreativeProjects
       tags: [creative]
       summary: List creative project history
-      description: Returns persisted projects newest first without exposing internal provider session identifiers.
+      description: Returns only the signed-in account's projects, or unclaimed projects in the signed anonymous browser workspace, newest first. Responses never expose ownership or internal provider identifiers.
       responses:
         "200":
           description: Creative project history
@@ -72,11 +78,61 @@ paths:
                 type: array
                 items:
                   $ref: "#/components/schemas/CreativeProject"
+  /creative-workspace:
+    get:
+      operationId: getCreativeWorkspace
+      tags: [creative]
+      summary: Get the current workspace and available browser projects
+      responses:
+        "200":
+          description: Current ownership mode and number of unclaimed projects in this browser
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreativeWorkspace"
+  /creative-workspace/claim:
+    post:
+      operationId: claimCreativeWorkspace
+      tags: [creative]
+      summary: Save this browser's unclaimed projects to the signed-in account
+      description: Requires a verified account session and same-origin JSON request. Identity and workspace are resolved exclusively on the server. Transfers all unclaimed projects from the signed workspace cookie atomically, including treatment history. Safe to repeat.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreativeWorkspaceClaimInput"
+      responses:
+        "200":
+          description: Number of projects transferred
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreativeWorkspaceClaim"
+        "400":
+          description: Invalid claim request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "401":
+          description: Sign in before claiming projects
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "403":
+          description: Cross-origin requests are not allowed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
   /creative-projects/{projectId}:
     get:
       operationId: getCreativeProject
       tags: [creative]
       summary: Get a creative project
+      description: Returns 404 for missing projects and projects owned by another account or browser workspace.
       parameters:
         - in: path
           name: projectId
@@ -108,6 +164,7 @@ paths:
       operationId: listCreativeProjectTreatments
       tags: [creative]
       summary: List a project's validated treatment history
+      description: History inherits project ownership. Returns 404 for missing projects and projects owned by another account or browser workspace.
       parameters:
         - in: path
           name: projectId
@@ -138,6 +195,30 @@ paths:
                 $ref: "#/components/schemas/ApiError"
 components:
   schemas:
+    CreativeWorkspace:
+      type: object
+      required: [signedIn, unclaimedProjectCount]
+      properties:
+        signedIn:
+          type: boolean
+        unclaimedProjectCount:
+          type: integer
+          minimum: 0
+    CreativeWorkspaceClaimInput:
+      type: object
+      additionalProperties: false
+      required: [confirm]
+      properties:
+        confirm:
+          type: boolean
+          enum: [true]
+    CreativeWorkspaceClaim:
+      type: object
+      required: [claimedProjectCount]
+      properties:
+        claimedProjectCount:
+          type: integer
+          minimum: 0
     HealthStatus:
       type: object
       properties:

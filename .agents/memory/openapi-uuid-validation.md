@@ -1,16 +1,16 @@
 ---
-name: OpenAPI UUID validation
-description: Why API UUID fields currently use explicit patterns instead of the OpenAPI UUID format.
+name: OpenAPI runtime compatibility
+description: Why Orval version detection is unsafe across this workspace's mixed Zod versions.
 ---
 
-Use an explicit UUID regex pattern in the OpenAPI specification rather than
-`format: uuid` until the generated schema package and its resolved Zod runtime
-are version-aligned.
+Do not assume successful OpenAPI generation implies its schemas match their
+runtime. In a mixed-version workspace, target the generated package's Zod
+version rather than the server's.
 
-**Why:** The current Orval generator emits the Zod 4-only `zod.uuid()` helper
-for `format: uuid`, while the generated schema package resolves a Zod 3 runtime.
-Code generation succeeds but the required library typecheck then fails.
+**Why:** Auto-detection emitted Zod 4-only helpers for both UUIDs and integers
+while the generated schema library resolved Zod 3. A UUID regex workaround hid
+the initial symptom, but a later integer field exposed the underlying mismatch.
 
-**How to apply:** For new UUID response fields and path parameters, copy the
-existing strict UUID pattern from the API spec. Revisit this only after verifying
-that codegen and the full workspace typecheck both resolve Zod 4.
+**How to apply:** When updating Orval or Zod, verify the generated library's
+runtime compatibility independently of the API server. Keep library typechecking
+as part of codegen; do not weaken API contracts just to avoid incompatible helpers.

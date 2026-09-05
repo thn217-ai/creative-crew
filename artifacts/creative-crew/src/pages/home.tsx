@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useQueryClient } from "@tanstack/react-query";
+import { useClerk, useUser } from "@clerk/react";
 import {
   ArrowRight,
   Clapperboard,
@@ -8,7 +9,12 @@ import {
   FolderOpen,
   Loader2,
   Sparkles,
+  User as UserIcon,
+  LogOut,
+  LogIn,
+  Save
 } from "lucide-react";
+import { Link } from "wouter";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,9 +24,12 @@ import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "
 import {
   getGetCreativeProjectQueryKey,
   getListCreativeProjectsQueryKey,
+  getGetCreativeWorkspaceQueryKey,
   useCreateCreativeTreatment,
   useGetCreativeProject,
   useListCreativeProjects,
+  useGetCreativeWorkspace,
+  useClaimCreativeWorkspace
 } from "@workspace/api-client-react";
 
 type BriefFormValues = {
@@ -30,14 +39,42 @@ type BriefFormValues = {
 export default function Home() {
   const queryClient = useQueryClient();
   const [selectedProjectId, setSelectedProjectId] = useState("");
+  const [signOutError, setSignOutError] = useState(false);
+
+  const { signOut } = useClerk();
+  const { user, isLoaded: isUserLoaded, isSignedIn } = useUser();
+  const basePath = import.meta.env.BASE_URL?.replace(/\/$/, '') || '';
+
+  const workspace = useGetCreativeWorkspace({
+    query: {
+      queryKey: getGetCreativeWorkspaceQueryKey(),
+      enabled: isUserLoaded,
+      refetchInterval: 30_000,
+    },
+  });
+
+  const isSessionValid = isUserLoaded && workspace.isSuccess && (isSignedIn === workspace.data.signedIn);
+
   const createTreatment = useCreateCreativeTreatment();
-  const projectHistory = useListCreativeProjects();
+
+  const projectHistory = useListCreativeProjects({
+    query: {
+      queryKey: getListCreativeProjectsQueryKey(),
+      enabled: isSessionValid,
+      staleTime: 10_000,
+      refetchInterval: 30_000,
+    }
+  });
+
   const selectedProject = useGetCreativeProject(selectedProjectId, {
     query: {
       queryKey: getGetCreativeProjectQueryKey(selectedProjectId),
-      enabled: Boolean(selectedProjectId),
+      enabled: Boolean(selectedProjectId) && isSessionValid,
+      refetchInterval: 30_000,
     },
   });
+
+  const claimWorkspace = useClaimCreativeWorkspace();
 
   const form = useForm<BriefFormValues>({
     defaultValues: {
@@ -46,12 +83,13 @@ export default function Home() {
   });
 
   useEffect(() => {
-    if (!selectedProjectId && projectHistory.data?.[0]) {
+    if (isSessionValid && !selectedProjectId && projectHistory.data?.[0]) {
       setSelectedProjectId(projectHistory.data[0].id);
     }
-  }, [projectHistory.data, selectedProjectId]);
+  }, [isSessionValid, projectHistory.data, selectedProjectId]);
 
   const onSubmit = (values: BriefFormValues) => {
+    if (!isSessionValid) return;
     createTreatment.mutate(
       { data: values },
       {
@@ -63,9 +101,25 @@ export default function Home() {
           void queryClient.invalidateQueries({
             queryKey: getListCreativeProjectsQueryKey(),
           });
+          void queryClient.invalidateQueries({
+            queryKey: getGetCreativeWorkspaceQueryKey(),
+          });
           setSelectedProjectId(project.id);
         },
       },
+    );
+  };
+
+  const handleClaim = () => {
+    if (!isSessionValid || !isSignedIn) return;
+    claimWorkspace.mutate(
+      { data: { confirm: true } },
+      {
+        onSuccess: () => {
+          void queryClient.invalidateQueries({ queryKey: getGetCreativeWorkspaceQueryKey() });
+          void queryClient.invalidateQueries({ queryKey: getListCreativeProjectsQueryKey() });
+        }
+      }
     );
   };
 
@@ -74,7 +128,7 @@ export default function Home() {
     form.setValue("brief", brief);
   };
 
-  const displayedProject = selectedProject.data;
+  const displayedProject = isSessionValid ? selectedProject.data : undefined;
   const treatment = displayedProject?.treatment;
   const isPending = createTreatment.isPending;
   const error = createTreatment.error ?? selectedProject.error;
@@ -86,17 +140,115 @@ export default function Home() {
         <div className="absolute inset-0 opacity-[0.03] pointer-events-none" style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=%220 0 200 200%22 xmlns=%22http://www.w3.org/2000/svg%22%3E%3Cfilter id=%22noiseFilter%22%3E%3CfeTurbulence type=%22fractalNoise%22 baseFrequency=%220.65%22 numOctaves=%223%22 stitchTiles=%22stitch%22/%3E%3C/filter%3E%3Crect width=%22100%25%22 height=%22100%25%22 filter=%22url(%23noiseFilter)%22/%3E%3C/svg%3E")' }}></div>
         
         <div className="relative z-10 flex flex-col h-full max-w-xl mx-auto w-full">
-          <header className="mb-12">
-            <div className="flex items-center gap-3 mb-4">
-              <div className="w-8 h-8 bg-primary rounded-sm flex items-center justify-center">
-                <Clapperboard className="text-primary-foreground w-5 h-5" />
+          <header className="mb-10 flex flex-col gap-6">
+            <div className="flex flex-wrap items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-8 h-8 bg-primary rounded-sm flex items-center justify-center">
+                  <Clapperboard className="text-primary-foreground w-5 h-5" />
+                </div>
+                <h1 className="text-2xl font-serif font-bold tracking-tight">Creative Crew</h1>
               </div>
-              <h1 className="text-2xl font-serif font-bold tracking-tight">Creative Crew</h1>
+
+              {isUserLoaded && (
+                <div className="flex max-w-full items-center text-sm font-medium border border-border/60 rounded-full px-3 py-1.5 bg-background">
+                  {isSignedIn ? (
+                    <div className="flex min-w-0 items-center gap-3">
+                      <span className="flex min-w-0 items-center gap-2 text-foreground/80">
+                        <UserIcon className="w-4 h-4 shrink-0 text-primary" />
+                        <span className="truncate" data-testid="account-identity">{user.primaryEmailAddress?.emailAddress || user.fullName || "Account"}</span>
+                      </span>
+                      <div className="w-px h-4 bg-border" />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setSignOutError(false);
+                          void signOut({ redirectUrl: basePath || "/" }).catch(() => setSignOutError(true));
+                        }}
+                        className="shrink-0 text-muted-foreground hover:text-foreground flex items-center gap-1.5 transition-colors"
+                        data-testid="button-sign-out"
+                      >
+                        <LogOut className="w-3.5 h-3.5" />
+                        Sign Out
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="flex items-center gap-3">
+                      <Link href="/sign-in" className="text-foreground/80 hover:text-foreground flex items-center gap-1.5 transition-colors" data-testid="link-sign-in">
+                        <LogIn className="w-3.5 h-3.5" />
+                        Sign In
+                      </Link>
+                      <div className="w-px h-4 bg-border" />
+                      <Link href="/sign-up" className="text-primary hover:text-primary/80 transition-colors" data-testid="link-sign-up">
+                        Create Account
+                      </Link>
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
+
             <p className="text-muted-foreground text-sm leading-relaxed">
               Submit your raw creative brief. Our digital production team will synthesize a structured treatment, ready for pre-production.
             </p>
           </header>
+
+          {signOutError && <p role="alert" className="mb-4 text-sm text-destructive">Sign-out failed. Please try again.</p>}
+          {!isSessionValid && (
+            <div role="status" className="mb-6 rounded-lg border border-border p-4 text-sm">
+              <p>{workspace.isLoading
+                ? "Checking your workspace…"
+                : "Your workspace session could not be verified. Retry, or sign out and sign in again."}</p>
+              {!workspace.isLoading && (
+                <Button type="button" variant="outline" size="sm" className="mt-3" disabled={workspace.isFetching} onClick={() => void workspace.refetch()}>
+                  Retry connection
+                </Button>
+              )}
+            </div>
+          )}
+          {claimWorkspace.isSuccess && isSessionValid && (
+            <p role="status" className="mb-6 text-sm text-primary" data-testid="claim-success">
+              {claimWorkspace.data.claimedProjectCount > 0
+                ? `${claimWorkspace.data.claimedProjectCount} browser project${claimWorkspace.data.claimedProjectCount === 1 ? "" : "s"} saved to your account. You can now reopen them on another device.`
+                : "No unclaimed browser projects remain. Your account library is up to date."}
+            </p>
+          )}
+          {isSignedIn && isSessionValid && (workspace.data?.unclaimedProjectCount ?? 0) > 0 && (
+            <div className="mb-8 p-4 bg-secondary/30 border border-secondary rounded-lg flex flex-col gap-3">
+              <div className="flex items-start gap-3">
+                <FolderOpen className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <h3 className="text-sm font-semibold text-foreground">Unclaimed Projects Detected</h3>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    You have {workspace.data?.unclaimedProjectCount} project{workspace.data?.unclaimedProjectCount === 1 ? '' : 's'} saved in this browser. Save them to this account to open them anywhere. They will no longer be available to guests after you sign out.
+                  </p>
+
+                  {claimWorkspace.isError && (
+                    <p className="text-xs text-destructive mt-2">
+                      Failed to save projects. Please try again.
+                    </p>
+                  )}
+                </div>
+              </div>
+                <div className="mt-1">
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="default"
+                    onClick={handleClaim}
+                    disabled={claimWorkspace.isPending}
+                    className="h-auto w-full gap-2 whitespace-normal py-2 text-xs"
+                    data-testid="button-claim-projects"
+                  >
+                    {claimWorkspace.isPending ? (
+                      <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    ) : (
+                      <Save className="w-3.5 h-3.5" />
+                    )}
+                    Save browser projects to my account
+                  </Button>
+                </div>
+            </div>
+          )}
 
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 gap-6 min-h-[390px]">
@@ -136,12 +288,12 @@ export default function Home() {
               <div className="mt-auto pt-6 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-t border-border/50">
                 <div className="text-xs text-muted-foreground font-mono flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-primary/50 animate-pulse" />
-                  SYSTEM ONLINE
+                  {isUserLoaded && !isSessionValid && workspace.data ? "SESSION SYNCING" : "SYSTEM ONLINE"}
                 </div>
                 <Button 
                   type="submit" 
                   size="lg" 
-                  disabled={isPending}
+                  disabled={isPending || !isSessionValid}
                   className="rounded-full px-8 gap-2 uppercase tracking-widest font-semibold text-xs transition-transform active:scale-95 w-full sm:w-auto"
                   data-testid="button-submit"
                 >
@@ -165,16 +317,21 @@ export default function Home() {
             <div className="mb-3 flex items-center justify-between">
               <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-foreground/80">
                 <FolderOpen className="h-4 w-4" />
-                Project history
+                {isSignedIn ? "My projects" : "Browser projects"}
               </h2>
-              {projectHistory.data && (
+              {isSessionValid && projectHistory.data && (
                 <span className="font-mono text-[10px] text-muted-foreground">
                   {projectHistory.data.length} saved
                 </span>
               )}
             </div>
+            <p className="mb-3 text-xs text-muted-foreground">
+              {isSignedIn
+                ? "Private to your account. Sign in on another device to pick up where you left off."
+                : "Saved in this browser only. Sign in and save them to your account before clearing browser data."}
+            </p>
             <div className="max-h-44 space-y-2 overflow-y-auto pr-1">
-              {projectHistory.isLoading && (
+              {projectHistory.isLoading && isSessionValid && (
                 <Skeleton className="h-14 w-full" />
               )}
               {projectHistory.isError && (
@@ -182,12 +339,17 @@ export default function Home() {
                   Saved projects could not be loaded.
                 </p>
               )}
-              {projectHistory.data?.length === 0 && (
+              {isUserLoaded && !isSessionValid && workspace.data && (
+                <p className="text-xs text-muted-foreground">
+                  Synchronizing secure session...
+                </p>
+              )}
+              {isSessionValid && projectHistory.data?.length === 0 && (
                 <p className="text-xs text-muted-foreground">
                   Completed and attempted treatments will appear here.
                 </p>
               )}
-              {projectHistory.data?.map((project) => (
+              {isSessionValid && projectHistory.data?.map((project) => (
                 <button
                   key={project.id}
                   type="button"

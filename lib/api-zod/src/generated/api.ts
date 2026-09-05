@@ -18,7 +18,7 @@ export const HealthCheckResponse = zod.object({
 
 
 /**
- * Runs a real Google ADK agent backed by Gemini and returns a validated treatment.
+ * Runs a real Google ADK agent backed by Gemini and saves a treatment to the signed-in account, or to the signed anonymous browser workspace.
  * @summary Create a structured creative treatment
  */
 export const createCreativeTreatmentBodyBriefMin = 20;
@@ -55,7 +55,7 @@ export const CreateCreativeTreatmentResponse = zod.object({
 
 
 /**
- * Returns persisted projects newest first without exposing internal provider session identifiers.
+ * Returns only the signed-in account's projects, or unclaimed projects in the signed anonymous browser workspace, newest first. Responses never expose ownership or internal provider identifiers.
  * @summary List creative project history
  */
 export const listCreativeProjectsResponseIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
@@ -84,6 +84,37 @@ export const ListCreativeProjectsResponse = zod.array(ListCreativeProjectsRespon
 
 
 /**
+ * @summary Get the current workspace and available browser projects
+ */
+export const getCreativeWorkspaceResponseUnclaimedProjectCountMin = 0;
+
+
+
+export const GetCreativeWorkspaceResponse = zod.object({
+  "signedIn": zod.boolean(),
+  "unclaimedProjectCount": zod.number().int().min(getCreativeWorkspaceResponseUnclaimedProjectCountMin)
+})
+
+
+/**
+ * Requires a verified account session and same-origin JSON request. Identity and workspace are resolved exclusively on the server. Transfers all unclaimed projects from the signed workspace cookie atomically, including treatment history. Safe to repeat.
+ * @summary Save this browser's unclaimed projects to the signed-in account
+ */
+export const ClaimCreativeWorkspaceBody = zod.object({
+  "confirm": zod.literal(true)
+})
+
+export const claimCreativeWorkspaceResponseClaimedProjectCountMin = 0;
+
+
+
+export const ClaimCreativeWorkspaceResponse = zod.object({
+  "claimedProjectCount": zod.number().int().min(claimCreativeWorkspaceResponseClaimedProjectCountMin)
+})
+
+
+/**
+ * Returns 404 for missing projects and projects owned by another account or browser workspace.
  * @summary Get a creative project
  */
 export const getCreativeProjectPathProjectIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
@@ -118,6 +149,7 @@ export const GetCreativeProjectResponse = zod.object({
 
 
 /**
+ * History inherits project ownership. Returns 404 for missing projects and projects owned by another account or browser workspace.
  * @summary List a project's validated treatment history
  */
 export const listCreativeProjectTreatmentsPathProjectIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');

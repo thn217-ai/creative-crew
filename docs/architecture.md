@@ -13,12 +13,15 @@ React/Vite web app
   -> ADK output schema
   -> server validation
   -> persisted treatment revision
-  -> refresh-safe project workspace
+  -> account-backed project workspace across devices
 ```
 
 The browser never receives Google credentials or internal ADK session identifiers.
-Each browser workspace receives a signed, HTTP-only identifier cookie; every
-project lookup is owner-scoped and cross-workspace identifiers return not found.
+Guests receive a signed, HTTP-only workspace cookie; Clerk verifies account
+sessions on the server. Signed-in project queries use only the verified account
+ID. Guest queries require both the signed workspace ID and an unclaimed project.
+Every detail and treatment-history lookup is owner-scoped; other owners' project
+identifiers return not found.
 The API persists the submitted brief and an ADK session record before generation,
 runs one bounded Creative Director agent, and stores only output that passes the
 server treatment schema. Failed attempts remain visible as projects without a
@@ -31,6 +34,27 @@ including provider session data.
 The current one-shot ADK runner remains in memory during execution, while its
 session identity and completion state are durable in PostgreSQL for later
 workflow expansion.
+
+## Account ownership and claiming
+
+- `/` remains a public guest workspace. Signed-in filmmakers land at
+  `/user-portal`; branded `/sign-in` and `/sign-up` routes handle Clerk callbacks.
+- `GET /api/creative-workspace` reports the server authentication state and the
+  number of unclaimed projects in this browser.
+- `POST /api/creative-workspace/claim` requires a verified account, the signed
+  workspace cookie, same-origin JSON, and explicit `{ "confirm": true }`.
+  It atomically assigns only still-unclaimed projects. Retrying does not duplicate
+  projects or allow another account to reclaim them.
+- Account ownership is additive: existing workspace UUIDs and project/treatment
+  IDs remain intact. Treatment revisions inherit their project's owner.
+- Internal generation completion retains its private project/session/workspace
+  capability, so claiming an in-progress project does not discard the result.
+  That capability is never exposed by the public API.
+- Browser requests use Clerk's session cookie, not manually attached tokens.
+  Authenticated and guest project data must never share a live client cache
+  across identity changes. API responses are not cacheable.
+- Development and published Clerk environments have separate accounts; signing
+  into the same environment on another device restores that account's library.
 
 ## Why this shape
 
@@ -46,6 +70,8 @@ workflow expansion.
 ## Required configuration
 
 - Replit Secret: `GOOGLE_API_KEY`
+- Replit Secret: `SESSION_SECRET` (keep stable for existing guest workspaces)
+- Replit-managed Clerk keys, provisioned through the Auth setup
 - Runtime: Node.js 24.13 or later
 - Google package: `@google/adk`
 - An active Gemini API project with available billing credits or quota

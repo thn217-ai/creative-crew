@@ -1,4 +1,5 @@
 import {
+  index,
   jsonb,
   pgTable,
   text,
@@ -8,17 +9,26 @@ import {
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
-export const creativeProjectsTable = pgTable("creative_projects", {
-  id: uuid("id").primaryKey(),
-  ownerId: uuid("owner_id").notNull(),
-  brief: text("brief").notNull(),
-  status: text("status").notNull(),
-  createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp("updated_at", { withTimezone: true })
-    .notNull()
-    .defaultNow()
-    .$onUpdate(() => new Date()),
-});
+export const creativeProjectsTable = pgTable(
+  "creative_projects",
+  {
+    id: uuid("id").primaryKey(),
+    ownerId: uuid("owner_id").notNull(),
+    accountUserId: text("account_user_id"),
+    brief: text("brief").notNull(),
+    status: text("status").notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .notNull()
+      .defaultNow(),
+    updatedAt: timestamp("updated_at", { withTimezone: true })
+      .notNull()
+      .defaultNow()
+      .$onUpdate(() => new Date()),
+  },
+  (table) => [
+    index("creative_projects_account_user_id_idx").on(table.accountUserId),
+  ],
+);
 
 export const creativeTreatmentsTable = pgTable("creative_treatments", {
   id: uuid("id").primaryKey(),

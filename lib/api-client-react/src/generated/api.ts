@@ -24,6 +24,9 @@ import type {
   CreativeBriefInput,
   CreativeProject,
   CreativeTreatmentRevision,
+  CreativeWorkspace,
+  CreativeWorkspaceClaim,
+  CreativeWorkspaceClaimInput,
   HealthStatus
 } from './api.schemas';
 
@@ -141,7 +144,7 @@ export const getCreateCreativeTreatmentUrl = () => {
 }
 
 /**
- * Runs a real Google ADK agent backed by Gemini and returns a validated treatment.
+ * Runs a real Google ADK agent backed by Gemini and saves a treatment to the signed-in account, or to the signed anonymous browser workspace.
  * @summary Create a structured creative treatment
  */
 export const createCreativeTreatment = async (creativeBriefInput: CreativeBriefInput, options?: Parameters<typeof customFetch>[1]): Promise<CreativeProject> => {
@@ -213,7 +216,7 @@ export const getListCreativeProjectsUrl = () => {
 }
 
 /**
- * Returns persisted projects newest first without exposing internal provider session identifiers.
+ * Returns only the signed-in account's projects, or unclaimed projects in the signed anonymous browser workspace, newest first. Responses never expose ownership or internal provider identifiers.
  * @summary List creative project history
  */
 export const listCreativeProjects = async ( options?: Parameters<typeof customFetch>[1]): Promise<CreativeProject[]> => {
@@ -282,6 +285,155 @@ export function useListCreativeProjects<TData = Awaited<ReturnType<typeof listCr
 
 
 
+export const getGetCreativeWorkspaceUrl = () => {
+
+
+
+
+  return `/api/creative-workspace`
+}
+
+/**
+ * @summary Get the current workspace and available browser projects
+ */
+export const getCreativeWorkspace = async ( options?: Parameters<typeof customFetch>[1]): Promise<CreativeWorkspace> => {
+
+  return customFetch<CreativeWorkspace>(getGetCreativeWorkspaceUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCreativeWorkspaceQueryKey = () => {
+    return [
+    `/api/creative-workspace`
+    ] as const;
+    }
+
+
+export const getGetCreativeWorkspaceQueryOptions = <TData = Awaited<ReturnType<typeof getCreativeWorkspace>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreativeWorkspace>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCreativeWorkspaceQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCreativeWorkspace>>> = ({ signal }) => getCreativeWorkspace({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCreativeWorkspace>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCreativeWorkspaceQueryResult = NonNullable<Awaited<ReturnType<typeof getCreativeWorkspace>>>
+export type GetCreativeWorkspaceQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary Get the current workspace and available browser projects
+ */
+
+export function useGetCreativeWorkspace<TData = Awaited<ReturnType<typeof getCreativeWorkspace>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreativeWorkspace>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCreativeWorkspaceQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getClaimCreativeWorkspaceUrl = () => {
+
+
+
+
+  return `/api/creative-workspace/claim`
+}
+
+/**
+ * Requires a verified account session and same-origin JSON request. Identity and workspace are resolved exclusively on the server. Transfers all unclaimed projects from the signed workspace cookie atomically, including treatment history. Safe to repeat.
+ * @summary Save this browser's unclaimed projects to the signed-in account
+ */
+export const claimCreativeWorkspace = async (creativeWorkspaceClaimInput: CreativeWorkspaceClaimInput, options?: Parameters<typeof customFetch>[1]): Promise<CreativeWorkspaceClaim> => {
+
+  return customFetch<CreativeWorkspaceClaim>(getClaimCreativeWorkspaceUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(creativeWorkspaceClaimInput)
+  }
+);}
+
+
+
+
+
+export const getClaimCreativeWorkspaceMutationOptions = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof claimCreativeWorkspace>>, TError,{data: BodyType<CreativeWorkspaceClaimInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof claimCreativeWorkspace>>, TError,{data: BodyType<CreativeWorkspaceClaimInput>}, TContext> => {
+
+const mutationKey = ['claimCreativeWorkspace'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof claimCreativeWorkspace>>, {data: BodyType<CreativeWorkspaceClaimInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  claimCreativeWorkspace(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ClaimCreativeWorkspaceMutationResult = NonNullable<Awaited<ReturnType<typeof claimCreativeWorkspace>>>
+    export type ClaimCreativeWorkspaceMutationBody = BodyType<CreativeWorkspaceClaimInput>
+    export type ClaimCreativeWorkspaceMutationError = ErrorType<ApiError>
+
+    /**
+ * @summary Save this browser's unclaimed projects to the signed-in account
+ */
+export const useClaimCreativeWorkspace = <TError = ErrorType<ApiError>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof claimCreativeWorkspace>>, TError,{data: BodyType<CreativeWorkspaceClaimInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof claimCreativeWorkspace>>,
+        TError,
+        {data: BodyType<CreativeWorkspaceClaimInput>},
+        TContext
+      > => {
+      return useMutation(getClaimCreativeWorkspaceMutationOptions(options));
+    }
+
 export const getGetCreativeProjectUrl = (projectId: string,) => {
 
 
@@ -291,6 +443,7 @@ export const getGetCreativeProjectUrl = (projectId: string,) => {
 }
 
 /**
+ * Returns 404 for missing projects and projects owned by another account or browser workspace.
  * @summary Get a creative project
  */
 export const getCreativeProject = async (projectId: string, options?: Parameters<typeof customFetch>[1]): Promise<CreativeProject> => {
@@ -368,6 +521,7 @@ export const getListCreativeProjectTreatmentsUrl = (projectId: string,) => {
 }
 
 /**
+ * History inherits project ownership. Returns 404 for missing projects and projects owned by another account or browser workspace.
  * @summary List a project's validated treatment history
  */
 export const listCreativeProjectTreatments = async (projectId: string, options?: Parameters<typeof customFetch>[1]): Promise<CreativeTreatmentRevision[]> => {

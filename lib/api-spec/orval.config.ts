@@ -57,6 +57,8 @@ export default defineConfig({
       prettier: true,
       override: {
         zod: {
+          // Match @workspace/api-zod's runtime rather than auto-detecting across the monorepo.
+          version: 3,
           coerce: {
             query: ['boolean', 'number', 'string'],
             param: ['boolean', 'number', 'string'],
