@@ -1,1 +1,2 @@
 - [Gemini model availability](gemini-model-availability.md) — live API rejects 2.5 Flash for new users; use 3.6 Flash until current runtime evidence says otherwise.
+- [OpenAPI UUID validation](openapi-uuid-validation.md) — use explicit UUID patterns until generated Zod schemas and the workspace Zod runtime are version-aligned.

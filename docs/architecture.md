@@ -1,29 +1,47 @@
 # Creative Crew architecture
 
-## Milestone 1 runtime
+## Milestone 2 runtime
 
 ```text
 React/Vite web app
+  -> GET /api/creative-projects or /api/creative-projects/:projectId
   -> POST /api/creative-treatment
   -> Express validation
+  -> PostgreSQL project + ADK session record
   -> Google ADK LlmAgent + InMemoryRunner
   -> Gemini 3.6 Flash
   -> ADK output schema
   -> server validation
-  -> structured treatment in the workspace
+  -> persisted treatment revision
+  -> refresh-safe project workspace
 ```
 
-The browser never receives Google credentials. The API creates an ephemeral ADK
-session for each brief, runs one bounded Creative Director agent, validates its
-structured response, and returns a clear failure instead of substitute content.
+The browser never receives Google credentials or internal ADK session identifiers.
+Each browser workspace receives a signed, HTTP-only identifier cookie; every
+project lookup is owner-scoped and cross-workspace identifiers return not found.
+The API persists the submitted brief and an ADK session record before generation,
+runs one bounded Creative Director agent, and stores only output that passes the
+server treatment schema. Failed attempts remain visible as projects without a
+treatment, rather than receiving substitute content.
+
+Project history is loaded newest-first when the workspace opens. A project detail
+endpoint lets the browser reopen the latest validated treatment after refresh.
+The treatment-history endpoint returns validated revisions newest-first without
+including provider session data.
+The current one-shot ADK runner remains in memory during execution, while its
+session identity and completion state are durable in PostgreSQL for later
+workflow expansion.
 
 ## Why this shape
 
-- Milestone 1 proves the complete runtime path before adding more agents.
+- Milestone 1 proved the complete runtime path before adding more agents.
+- Milestone 2 establishes projects as the durable boundary for briefs, ADK runs,
+  and validated treatment revisions.
 - Google ADK is used in executable server code, not only named in documentation.
 - The workflow is deterministic at the application layer; later specialists will
   run through explicit dependencies rather than open-ended agent conversation.
-- Session persistence and a database are intentionally deferred until Milestone 2.
+- Provider session metadata is private API state and is never serialized to the
+  browser.
 
 ## Required configuration
 
@@ -44,8 +62,8 @@ server-side Vertex API key. That migration is not required to prove Milestone 1.
 
 ## Verified implementation plan
 
-1. Milestone 1: real brief -> ADK -> Gemini -> validated treatment -> UI.
-2. Milestone 2: structured project state and session persistence.
+1. Milestone 1: real brief -> ADK -> Gemini -> validated treatment -> UI. Complete.
+2. Milestone 2: structured project state and session persistence. Complete.
 3. Milestone 3: deterministic specialist workflow and Creative QA.
 4. Milestone 4: complete production workspace and activity feed.
 5. Milestone 5: dependency-aware creative revision.

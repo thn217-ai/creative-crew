@@ -30,7 +30,14 @@ export const CreateCreativeTreatmentBody = zod.object({
   "brief": zod.string().min(createCreativeTreatmentBodyBriefMin).max(createCreativeTreatmentBodyBriefMax)
 })
 
+export const createCreativeTreatmentResponseIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+
+
 export const CreateCreativeTreatmentResponse = zod.object({
+  "id": zod.string().regex(createCreativeTreatmentResponseIdRegExp),
+  "brief": zod.string(),
+  "status": zod.enum(['generating', 'completed', 'failed']),
+  "treatment": zod.union([zod.object({
   "title": zod.string(),
   "logline": zod.string(),
   "centralIdea": zod.string(),
@@ -41,6 +48,104 @@ export const CreateCreativeTreatmentResponse = zod.object({
   "audiencePromise": zod.string(),
   "guardrails": zod.array(zod.string()),
   "generatedBy": zod.enum(['google-adk-gemini'])
+}),zod.null()]),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
 })
+
+
+/**
+ * Returns persisted projects newest first without exposing internal provider session identifiers.
+ * @summary List creative project history
+ */
+export const listCreativeProjectsResponseIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+
+
+export const ListCreativeProjectsResponseItem = zod.object({
+  "id": zod.string().regex(listCreativeProjectsResponseIdRegExp),
+  "brief": zod.string(),
+  "status": zod.enum(['generating', 'completed', 'failed']),
+  "treatment": zod.union([zod.object({
+  "title": zod.string(),
+  "logline": zod.string(),
+  "centralIdea": zod.string(),
+  "emotionalDirection": zod.string(),
+  "tone": zod.array(zod.string()),
+  "narrativeApproach": zod.string(),
+  "visualPrinciples": zod.array(zod.string()),
+  "audiencePromise": zod.string(),
+  "guardrails": zod.array(zod.string()),
+  "generatedBy": zod.enum(['google-adk-gemini'])
+}),zod.null()]),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+export const ListCreativeProjectsResponse = zod.array(ListCreativeProjectsResponseItem)
+
+
+/**
+ * @summary Get a creative project
+ */
+export const getCreativeProjectPathProjectIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+
+
+export const GetCreativeProjectParams = zod.object({
+  "projectId": zod.coerce.string().regex(getCreativeProjectPathProjectIdRegExp)
+})
+
+export const getCreativeProjectResponseIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+
+
+export const GetCreativeProjectResponse = zod.object({
+  "id": zod.string().regex(getCreativeProjectResponseIdRegExp),
+  "brief": zod.string(),
+  "status": zod.enum(['generating', 'completed', 'failed']),
+  "treatment": zod.union([zod.object({
+  "title": zod.string(),
+  "logline": zod.string(),
+  "centralIdea": zod.string(),
+  "emotionalDirection": zod.string(),
+  "tone": zod.array(zod.string()),
+  "narrativeApproach": zod.string(),
+  "visualPrinciples": zod.array(zod.string()),
+  "audiencePromise": zod.string(),
+  "guardrails": zod.array(zod.string()),
+  "generatedBy": zod.enum(['google-adk-gemini'])
+}),zod.null()]),
+  "createdAt": zod.coerce.date(),
+  "updatedAt": zod.coerce.date()
+})
+
+
+/**
+ * @summary List a project's validated treatment history
+ */
+export const listCreativeProjectTreatmentsPathProjectIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+
+
+export const ListCreativeProjectTreatmentsParams = zod.object({
+  "projectId": zod.coerce.string().regex(listCreativeProjectTreatmentsPathProjectIdRegExp)
+})
+
+export const listCreativeProjectTreatmentsResponseIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+
+
+export const ListCreativeProjectTreatmentsResponseItem = zod.object({
+  "id": zod.string().regex(listCreativeProjectTreatmentsResponseIdRegExp),
+  "treatment": zod.object({
+  "title": zod.string(),
+  "logline": zod.string(),
+  "centralIdea": zod.string(),
+  "emotionalDirection": zod.string(),
+  "tone": zod.array(zod.string()),
+  "narrativeApproach": zod.string(),
+  "visualPrinciples": zod.array(zod.string()),
+  "audiencePromise": zod.string(),
+  "guardrails": zod.array(zod.string()),
+  "generatedBy": zod.enum(['google-adk-gemini'])
+}),
+  "createdAt": zod.coerce.date()
+})
+export const ListCreativeProjectTreatmentsResponse = zod.array(ListCreativeProjectTreatmentsResponseItem)
 
 

@@ -8,6 +8,9 @@
 
 export * from './apiError';
 export * from './creativeBriefInput';
+export * from './creativeProject';
+export * from './creativeProjectStatus';
 export * from './creativeTreatment';
 export * from './creativeTreatmentGeneratedBy';
+export * from './creativeTreatmentRevision';
 export * from './healthStatus';

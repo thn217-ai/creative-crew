@@ -1,19 +1,43 @@
+import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Clapperboard, Film, Sparkles, Loader2, ArrowRight } from "lucide-react";
+import { useQueryClient } from "@tanstack/react-query";
+import {
+  ArrowRight,
+  Clapperboard,
+  Film,
+  FolderOpen,
+  Loader2,
+  Sparkles,
+} from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TreatmentResult } from "@/components/treatment-result";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useCreateCreativeTreatment } from "@workspace/api-client-react";
+import {
+  getGetCreativeProjectQueryKey,
+  getListCreativeProjectsQueryKey,
+  useCreateCreativeTreatment,
+  useGetCreativeProject,
+  useListCreativeProjects,
+} from "@workspace/api-client-react";
 
 type BriefFormValues = {
   brief: string;
 };
 
 export default function Home() {
-  const { mutate, isPending, error, data } = useCreateCreativeTreatment();
+  const queryClient = useQueryClient();
+  const [selectedProjectId, setSelectedProjectId] = useState("");
+  const createTreatment = useCreateCreativeTreatment();
+  const projectHistory = useListCreativeProjects();
+  const selectedProject = useGetCreativeProject(selectedProjectId, {
+    query: {
+      queryKey: getGetCreativeProjectQueryKey(selectedProjectId),
+      enabled: Boolean(selectedProjectId),
+    },
+  });
 
   const form = useForm<BriefFormValues>({
     defaultValues: {
@@ -21,9 +45,39 @@ export default function Home() {
     },
   });
 
+  useEffect(() => {
+    if (!selectedProjectId && projectHistory.data?.[0]) {
+      setSelectedProjectId(projectHistory.data[0].id);
+    }
+  }, [projectHistory.data, selectedProjectId]);
+
   const onSubmit = (values: BriefFormValues) => {
-    mutate({ data: values });
+    createTreatment.mutate(
+      { data: values },
+      {
+        onSuccess: (project) => {
+          queryClient.setQueryData(
+            getGetCreativeProjectQueryKey(project.id),
+            project,
+          );
+          void queryClient.invalidateQueries({
+            queryKey: getListCreativeProjectsQueryKey(),
+          });
+          setSelectedProjectId(project.id);
+        },
+      },
+    );
   };
+
+  const openProject = (projectId: string, brief: string) => {
+    setSelectedProjectId(projectId);
+    form.setValue("brief", brief);
+  };
+
+  const displayedProject = selectedProject.data;
+  const treatment = displayedProject?.treatment;
+  const isPending = createTreatment.isPending;
+  const error = createTreatment.error ?? selectedProject.error;
 
   return (
     <div className="flex flex-col md:flex-row min-h-[100dvh] w-full bg-background font-sans">
@@ -45,7 +99,7 @@ export default function Home() {
           </header>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 gap-6">
+            <form onSubmit={form.handleSubmit(onSubmit)} className="flex flex-col flex-1 gap-6 min-h-[390px]">
               <FormField
                 control={form.control}
                 name="brief"
@@ -106,6 +160,60 @@ export default function Home() {
               </div>
             </form>
           </Form>
+
+          <section className="mt-8 border-t border-border pt-6">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-foreground/80">
+                <FolderOpen className="h-4 w-4" />
+                Project history
+              </h2>
+              {projectHistory.data && (
+                <span className="font-mono text-[10px] text-muted-foreground">
+                  {projectHistory.data.length} saved
+                </span>
+              )}
+            </div>
+            <div className="max-h-44 space-y-2 overflow-y-auto pr-1">
+              {projectHistory.isLoading && (
+                <Skeleton className="h-14 w-full" />
+              )}
+              {projectHistory.isError && (
+                <p className="text-xs text-destructive">
+                  Saved projects could not be loaded.
+                </p>
+              )}
+              {projectHistory.data?.length === 0 && (
+                <p className="text-xs text-muted-foreground">
+                  Completed and attempted treatments will appear here.
+                </p>
+              )}
+              {projectHistory.data?.map((project) => (
+                <button
+                  key={project.id}
+                  type="button"
+                  onClick={() => openProject(project.id, project.brief)}
+                  className={`w-full border px-3 py-2.5 text-left transition-colors ${
+                    selectedProjectId === project.id
+                      ? "border-primary/40 bg-primary/5"
+                      : "border-border/70 hover:border-primary/30 hover:bg-muted/40"
+                  }`}
+                >
+                  <span className="block truncate font-serif text-sm font-semibold">
+                    {project.treatment?.title ??
+                      (project.status === "failed"
+                        ? "Generation unsuccessful"
+                        : "Treatment in progress")}
+                  </span>
+                  <span className="mt-1 flex items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
+                    <span>{project.status}</span>
+                    <time dateTime={project.createdAt}>
+                      {new Date(project.createdAt).toLocaleDateString()}
+                    </time>
+                  </span>
+                </button>
+              ))}
+            </div>
+          </section>
         </div>
       </div>
 
@@ -123,19 +231,25 @@ export default function Home() {
             </div>
           )}
 
-          {!data && !isPending && (
+          {!treatment && !isPending && !selectedProject.isLoading && (
             <div className="flex-1 flex flex-col items-center justify-center text-center max-w-md mx-auto opacity-50 space-y-6">
               <Film className="w-16 h-16 text-muted-foreground stroke-[1]" />
               <div className="space-y-2">
-                <h3 className="font-serif text-2xl">Awaiting Directives</h3>
+                <h3 className="font-serif text-2xl">
+                  {displayedProject?.status === "failed"
+                    ? "Treatment Unavailable"
+                    : "Awaiting Directives"}
+                </h3>
                 <p className="text-muted-foreground text-sm">
-                  The screening room is empty. Submit a brief to generate a structured creative treatment.
+                  {displayedProject?.status === "failed"
+                    ? "This brief was saved, but the crew could not complete a validated treatment."
+                    : "The screening room is empty. Submit a brief to generate a structured creative treatment."}
                 </p>
               </div>
             </div>
           )}
 
-          {isPending && (
+          {(isPending || selectedProject.isLoading) && (
             <div className="flex-1 flex flex-col justify-center max-w-2xl mx-auto w-full space-y-12 animate-in fade-in duration-1000">
               <div className="space-y-4">
                 <div className="flex items-center gap-3 text-primary">
@@ -162,8 +276,8 @@ export default function Home() {
             </div>
           )}
 
-          {data && !isPending && (
-            <TreatmentResult data={data} />
+          {treatment && !isPending && (
+            <TreatmentResult data={treatment} />
           )}
         </div>
       </div>

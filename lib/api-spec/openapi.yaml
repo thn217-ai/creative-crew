@@ -39,12 +39,12 @@ paths:
             schema:
               $ref: "#/components/schemas/CreativeBriefInput"
       responses:
-        "200":
+        "201":
           description: Creative treatment generated
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CreativeTreatment"
+                $ref: "#/components/schemas/CreativeProject"
         "400":
           description: Missing or invalid creative brief
           content:
@@ -53,6 +53,85 @@ paths:
                 $ref: "#/components/schemas/ApiError"
         "502":
           description: Google AI generation failed
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /creative-projects:
+    get:
+      operationId: listCreativeProjects
+      tags: [creative]
+      summary: List creative project history
+      description: Returns persisted projects newest first without exposing internal provider session identifiers.
+      responses:
+        "200":
+          description: Creative project history
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CreativeProject"
+  /creative-projects/{projectId}:
+    get:
+      operationId: getCreativeProject
+      tags: [creative]
+      summary: Get a creative project
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+      responses:
+        "200":
+          description: Creative project and latest validated treatment
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CreativeProject"
+        "400":
+          description: Invalid project identifier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Project not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+  /creative-projects/{projectId}/treatments:
+    get:
+      operationId: listCreativeProjectTreatments
+      tags: [creative]
+      summary: List a project's validated treatment history
+      parameters:
+        - in: path
+          name: projectId
+          required: true
+          schema:
+            type: string
+            pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+      responses:
+        "200":
+          description: Validated treatment revisions newest first
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CreativeTreatmentRevision"
+        "400":
+          description: Invalid project identifier
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiError"
+        "404":
+          description: Project not found
           content:
             application/json:
               schema:
@@ -116,6 +195,49 @@ components:
         - audiencePromise
         - guardrails
         - generatedBy
+    CreativeProject:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+        brief:
+          type: string
+        status:
+          type: string
+          enum: [generating, completed, failed]
+        treatment:
+          oneOf:
+            - $ref: "#/components/schemas/CreativeTreatment"
+            - type: "null"
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - brief
+        - status
+        - treatment
+        - createdAt
+        - updatedAt
+    CreativeTreatmentRevision:
+      type: object
+      properties:
+        id:
+          type: string
+          pattern: '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$'
+        treatment:
+          $ref: "#/components/schemas/CreativeTreatment"
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - treatment
+        - createdAt
     ApiError:
       type: object
       properties:

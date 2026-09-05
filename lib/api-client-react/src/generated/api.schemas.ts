@@ -37,6 +37,32 @@ export interface CreativeTreatment {
   generatedBy: CreativeTreatmentGeneratedBy;
 }
 
+export type CreativeProjectStatus = typeof CreativeProjectStatus[keyof typeof CreativeProjectStatus];
+
+
+export const CreativeProjectStatus = {
+  generating: 'generating',
+  completed: 'completed',
+  failed: 'failed',
+} as const;
+
+export interface CreativeProject {
+  /** @pattern ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$ */
+  id: string;
+  brief: string;
+  status: CreativeProjectStatus;
+  treatment: CreativeTreatment | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface CreativeTreatmentRevision {
+  /** @pattern ^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$ */
+  id: string;
+  treatment: CreativeTreatment;
+  createdAt: string;
+}
+
 export interface ApiError {
   error: string;
 }

@@ -22,7 +22,8 @@ import type {
 import type {
   ApiError,
   CreativeBriefInput,
-  CreativeTreatment,
+  CreativeProject,
+  CreativeTreatmentRevision,
   HealthStatus
 } from './api.schemas';
 
@@ -143,9 +144,9 @@ export const getCreateCreativeTreatmentUrl = () => {
  * Runs a real Google ADK agent backed by Gemini and returns a validated treatment.
  * @summary Create a structured creative treatment
  */
-export const createCreativeTreatment = async (creativeBriefInput: CreativeBriefInput, options?: Parameters<typeof customFetch>[1]): Promise<CreativeTreatment> => {
+export const createCreativeTreatment = async (creativeBriefInput: CreativeBriefInput, options?: Parameters<typeof customFetch>[1]): Promise<CreativeProject> => {
 
-  return customFetch<CreativeTreatment>(getCreateCreativeTreatmentUrl(),
+  return customFetch<CreativeProject>(getCreateCreativeTreatmentUrl(),
   {
     ...options,
     method: 'POST',
@@ -202,4 +203,236 @@ export const useCreateCreativeTreatment = <TError = ErrorType<ApiError>,
       > => {
       return useMutation(getCreateCreativeTreatmentMutationOptions(options));
     }
+
+export const getListCreativeProjectsUrl = () => {
+
+
+
+
+  return `/api/creative-projects`
+}
+
+/**
+ * Returns persisted projects newest first without exposing internal provider session identifiers.
+ * @summary List creative project history
+ */
+export const listCreativeProjects = async ( options?: Parameters<typeof customFetch>[1]): Promise<CreativeProject[]> => {
+
+  return customFetch<CreativeProject[]>(getListCreativeProjectsUrl(),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCreativeProjectsQueryKey = () => {
+    return [
+    `/api/creative-projects`
+    ] as const;
+    }
+
+
+export const getListCreativeProjectsQueryOptions = <TData = Awaited<ReturnType<typeof listCreativeProjects>>, TError = ErrorType<unknown>>( options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCreativeProjects>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCreativeProjectsQueryKey();
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCreativeProjects>>> = ({ signal }) => listCreativeProjects({ signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCreativeProjects>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCreativeProjectsQueryResult = NonNullable<Awaited<ReturnType<typeof listCreativeProjects>>>
+export type ListCreativeProjectsQueryError = ErrorType<unknown>
+
+
+/**
+ * @summary List creative project history
+ */
+
+export function useListCreativeProjects<TData = Awaited<ReturnType<typeof listCreativeProjects>>, TError = ErrorType<unknown>>(
+  options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCreativeProjects>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCreativeProjectsQueryOptions(options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getGetCreativeProjectUrl = (projectId: string,) => {
+
+
+
+
+  return `/api/creative-projects/${projectId}`
+}
+
+/**
+ * @summary Get a creative project
+ */
+export const getCreativeProject = async (projectId: string, options?: Parameters<typeof customFetch>[1]): Promise<CreativeProject> => {
+
+  return customFetch<CreativeProject>(getGetCreativeProjectUrl(projectId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetCreativeProjectQueryKey = (projectId: string,) => {
+    return [
+    `/api/creative-projects/${projectId}`
+    ] as const;
+    }
+
+
+export const getGetCreativeProjectQueryOptions = <TData = Awaited<ReturnType<typeof getCreativeProject>>, TError = ErrorType<ApiError>>(projectId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreativeProject>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetCreativeProjectQueryKey(projectId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getCreativeProject>>> = ({ signal }) => getCreativeProject(projectId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: projectId !== null && projectId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getCreativeProject>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetCreativeProjectQueryResult = NonNullable<Awaited<ReturnType<typeof getCreativeProject>>>
+export type GetCreativeProjectQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary Get a creative project
+ */
+
+export function useGetCreativeProject<TData = Awaited<ReturnType<typeof getCreativeProject>>, TError = ErrorType<ApiError>>(
+ projectId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getCreativeProject>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetCreativeProjectQueryOptions(projectId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
+
+export const getListCreativeProjectTreatmentsUrl = (projectId: string,) => {
+
+
+
+
+  return `/api/creative-projects/${projectId}/treatments`
+}
+
+/**
+ * @summary List a project's validated treatment history
+ */
+export const listCreativeProjectTreatments = async (projectId: string, options?: Parameters<typeof customFetch>[1]): Promise<CreativeTreatmentRevision[]> => {
+
+  return customFetch<CreativeTreatmentRevision[]>(getListCreativeProjectTreatmentsUrl(projectId),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListCreativeProjectTreatmentsQueryKey = (projectId: string,) => {
+    return [
+    `/api/creative-projects/${projectId}/treatments`
+    ] as const;
+    }
+
+
+export const getListCreativeProjectTreatmentsQueryOptions = <TData = Awaited<ReturnType<typeof listCreativeProjectTreatments>>, TError = ErrorType<ApiError>>(projectId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCreativeProjectTreatments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListCreativeProjectTreatmentsQueryKey(projectId);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listCreativeProjectTreatments>>> = ({ signal }) => listCreativeProjectTreatments(projectId, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: projectId !== null && projectId !== undefined, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listCreativeProjectTreatments>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListCreativeProjectTreatmentsQueryResult = NonNullable<Awaited<ReturnType<typeof listCreativeProjectTreatments>>>
+export type ListCreativeProjectTreatmentsQueryError = ErrorType<ApiError>
+
+
+/**
+ * @summary List a project's validated treatment history
+ */
+
+export function useListCreativeProjectTreatments<TData = Awaited<ReturnType<typeof listCreativeProjectTreatments>>, TError = ErrorType<ApiError>>(
+ projectId: string, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listCreativeProjectTreatments>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListCreativeProjectTreatmentsQueryOptions(projectId,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return withQueryKey(query, queryOptions.queryKey);
+}
+
+
+
+
+
+
 

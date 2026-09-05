@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Router, type IRouter } from "express";
+import type { Request, Response } from "express";
 import {
   InMemoryRunner,
   LlmAgent,
@@ -7,14 +8,46 @@ import {
 import {
   CreateCreativeTreatmentBody,
   CreateCreativeTreatmentResponse,
+  GetCreativeProjectParams,
+  GetCreativeProjectResponse,
+  ListCreativeProjectTreatmentsParams,
+  ListCreativeProjectTreatmentsResponse,
+  ListCreativeProjectsResponse,
 } from "@workspace/api-zod";
 import { z } from "zod/v4";
+import {
+  creativeProjectRepository,
+  type CreativeProjectRepository,
+} from "../lib/creative-project-repository";
 
 const router: IRouter = Router();
 
 const MODEL = "gemini-3.6-flash";
 const APP_NAME = "creative-crew";
 const RUN_TIMEOUT_MS = 90_000;
+const WORKSPACE_COOKIE = "creative_workspace";
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function getWorkspaceId(req: Request, res: Response): string {
+  const candidate = (req.signedCookies as Record<string, unknown> | undefined)?.[
+    WORKSPACE_COOKIE
+  ];
+  if (typeof candidate === "string" && UUID_PATTERN.test(candidate)) {
+    return candidate;
+  }
+
+  const workspaceId = randomUUID();
+  res.cookie(WORKSPACE_COOKIE, workspaceId, {
+    signed: true,
+    httpOnly: true,
+    sameSite: "lax",
+    secure: process.env["NODE_ENV"] === "production",
+    maxAge: 365 * 24 * 60 * 60 * 1000,
+    path: "/",
+  });
+  return workspaceId;
+}
 
 export const adkTreatmentSchema = z.object({
   title: z.string(),
@@ -51,19 +84,25 @@ function createTreatmentAgent() {
   });
 }
 
-export async function generateTreatment(brief: string): Promise<unknown> {
+type AdkRunContext = {
+  userId: string;
+  sessionId: string;
+};
+
+export async function generateTreatment(
+  brief: string,
+  context: AdkRunContext,
+): Promise<unknown> {
   const agent = createTreatmentAgent();
   const runner = new InMemoryRunner({
     agent,
     appName: APP_NAME,
   });
 
-  const userId = `filmmaker-${randomUUID()}`;
-  const sessionId = randomUUID();
   await runner.sessionService.createSession({
     appName: APP_NAME,
-    userId,
-    sessionId,
+    userId: context.userId,
+    sessionId: context.sessionId,
   });
 
   const controller = new AbortController();
@@ -72,8 +111,8 @@ export async function generateTreatment(brief: string): Promise<unknown> {
 
   try {
     for await (const event of runner.runAsync({
-      userId,
-      sessionId,
+      userId: context.userId,
+      sessionId: context.sessionId,
       newMessage: {
         role: "user",
         parts: [{ text: brief }],
@@ -109,56 +148,152 @@ export async function generateTreatment(brief: string): Promise<unknown> {
   return parsed;
 }
 
-type TreatmentGenerator = (brief: string) => Promise<unknown>;
+type TreatmentGenerator = (
+  brief: string,
+  context: AdkRunContext,
+) => Promise<unknown>;
 
 export function createCreativeTreatmentRouter(
   treatmentGenerator: TreatmentGenerator = generateTreatment,
+  repository: CreativeProjectRepository = creativeProjectRepository,
 ): IRouter {
   const treatmentRouter: IRouter = Router();
 
-  treatmentRouter.post("/creative-treatment", async (req, res) => {
-  const input = CreateCreativeTreatmentBody.safeParse(req.body);
-
-  if (!input.success) {
-    res.status(400).json({
-      error:
-        "Enter a creative brief of at least 20 characters before starting the crew.",
-    });
-    return;
-  }
-
-  if (!process.env["GOOGLE_API_KEY"]) {
-    req.log.error("GOOGLE_API_KEY is not configured");
-    res.status(502).json({
-      error:
-        "Google AI is not configured. Add GOOGLE_API_KEY to Replit Secrets.",
-    });
-    return;
-  }
-
-  try {
-    const generated = await treatmentGenerator(input.data.brief);
-    const treatment = CreateCreativeTreatmentResponse.parse(generated);
-    res.json(treatment);
-  } catch (error) {
-    const message = error instanceof Error ? error.message : "";
-    const aborted =
-      error instanceof Error &&
-      (error.name === "AbortError" || error.message.includes("aborted"));
-    const billingUnavailable =
-      message.includes("prepayment credits are depleted") ||
-      message.toLowerCase().includes("billing");
-
-    req.log.error({ err: error }, "Creative treatment generation failed");
-    res.status(502).json({
-      error: billingUnavailable
-        ? "Gemini billing credits are depleted for this Google project. Restore billing in Google AI Studio, then try again."
-        : aborted
-          ? "The creative crew timed out. Please try the brief again."
-          : "The creative crew could not complete the treatment. Please try again.",
-    });
-  }
+  treatmentRouter.get("/creative-projects", async (req, res): Promise<void> => {
+    const ownerId = getWorkspaceId(req, res);
+    const projects = await repository.listProjects(ownerId);
+    res.json(ListCreativeProjectsResponse.parse(projects));
   });
+
+  treatmentRouter.get(
+    "/creative-projects/:projectId",
+    async (req, res): Promise<void> => {
+      const params = GetCreativeProjectParams.safeParse(req.params);
+      if (!params.success) {
+        res.status(400).json({ error: "Enter a valid project identifier." });
+        return;
+      }
+
+      const ownerId = getWorkspaceId(req, res);
+      const project = await repository.getProject(
+        params.data.projectId,
+        ownerId,
+      );
+      if (!project) {
+        res.status(404).json({ error: "Creative project not found." });
+        return;
+      }
+
+      res.json(GetCreativeProjectResponse.parse(project));
+    },
+  );
+
+  treatmentRouter.get(
+    "/creative-projects/:projectId/treatments",
+    async (req, res): Promise<void> => {
+      const params = ListCreativeProjectTreatmentsParams.safeParse(req.params);
+      if (!params.success) {
+        res.status(400).json({ error: "Enter a valid project identifier." });
+        return;
+      }
+
+      const ownerId = getWorkspaceId(req, res);
+      const project = await repository.getProject(
+        params.data.projectId,
+        ownerId,
+      );
+      if (!project) {
+        res.status(404).json({ error: "Creative project not found." });
+        return;
+      }
+
+      const treatments = await repository.listTreatments(
+        params.data.projectId,
+        ownerId,
+      );
+      res.json(ListCreativeProjectTreatmentsResponse.parse(treatments));
+    },
+  );
+
+  treatmentRouter.post(
+    "/creative-treatment",
+    async (req, res): Promise<void> => {
+      const input = CreateCreativeTreatmentBody.safeParse(req.body);
+
+      if (!input.success) {
+        res.status(400).json({
+          error:
+            "Enter a creative brief of at least 20 characters before starting the crew.",
+        });
+        return;
+      }
+
+      const ownerId = getWorkspaceId(req, res);
+      const projectId = randomUUID();
+      const sessionId = randomUUID();
+      const userId = `filmmaker-${projectId}`;
+
+      try {
+        await repository.startGeneration({
+          projectId,
+          ownerId,
+          brief: input.data.brief,
+          sessionId,
+          userId,
+        });
+
+        if (!process.env["GOOGLE_API_KEY"]) {
+          throw new Error("GOOGLE_API_KEY is not configured");
+        }
+
+        const generated = await treatmentGenerator(input.data.brief, {
+          userId,
+          sessionId,
+        });
+        const treatment = adkTreatmentSchema.parse(generated);
+        const project = await repository.completeGeneration(
+          projectId,
+          ownerId,
+          sessionId,
+          treatment,
+        );
+        res.status(201).json(CreateCreativeTreatmentResponse.parse(project));
+      } catch (error) {
+        try {
+          await repository.failGeneration(projectId, ownerId, sessionId);
+        } catch (persistenceError) {
+          req.log.error(
+            { err: persistenceError, projectId },
+            "Failed to persist creative generation failure",
+          );
+        }
+
+        const message = error instanceof Error ? error.message : "";
+        const aborted =
+          error instanceof Error &&
+          (error.name === "AbortError" || error.message.includes("aborted"));
+        const billingUnavailable =
+          message.includes("prepayment credits are depleted") ||
+          message.toLowerCase().includes("billing");
+        const providerNotConfigured = message.includes(
+          "GOOGLE_API_KEY is not configured",
+        );
+
+        req.log.error(
+          { err: error, projectId },
+          "Creative treatment generation failed",
+        );
+        res.status(502).json({
+          error: billingUnavailable
+            ? "Gemini billing credits are depleted for this Google project. Restore billing in Google AI Studio, then try again."
+            : providerNotConfigured
+              ? "Google AI is not configured. Add GOOGLE_API_KEY to Replit Secrets."
+              : aborted
+              ? "The creative crew timed out. Please try the brief again."
+              : "The creative crew could not complete the treatment. Please try again.",
+        });
+      }
+    });
 
   return treatmentRouter;
 }
