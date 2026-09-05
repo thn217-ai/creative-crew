@@ -16,7 +16,7 @@ const MODEL = "gemini-3.6-flash";
 const APP_NAME = "creative-crew";
 const RUN_TIMEOUT_MS = 90_000;
 
-const adkTreatmentSchema = z.object({
+export const adkTreatmentSchema = z.object({
   title: z.string(),
   logline: z.string(),
   centralIdea: z.string(),
@@ -51,7 +51,7 @@ function createTreatmentAgent() {
   });
 }
 
-async function generateTreatment(brief: string) {
+export async function generateTreatment(brief: string): Promise<unknown> {
   const agent = createTreatmentAgent();
   const runner = new InMemoryRunner({
     agent,
@@ -106,10 +106,17 @@ async function generateTreatment(brief: string) {
     throw new Error("Gemini returned malformed structured output.");
   }
 
-  return CreateCreativeTreatmentResponse.parse(parsed);
+  return parsed;
 }
 
-router.post("/creative-treatment", async (req, res) => {
+type TreatmentGenerator = (brief: string) => Promise<unknown>;
+
+export function createCreativeTreatmentRouter(
+  treatmentGenerator: TreatmentGenerator = generateTreatment,
+): IRouter {
+  const treatmentRouter: IRouter = Router();
+
+  treatmentRouter.post("/creative-treatment", async (req, res) => {
   const input = CreateCreativeTreatmentBody.safeParse(req.body);
 
   if (!input.success) {
@@ -130,7 +137,8 @@ router.post("/creative-treatment", async (req, res) => {
   }
 
   try {
-    const treatment = await generateTreatment(input.data.brief);
+    const generated = await treatmentGenerator(input.data.brief);
+    const treatment = CreateCreativeTreatmentResponse.parse(generated);
     res.json(treatment);
   } catch (error) {
     const message = error instanceof Error ? error.message : "";
@@ -150,6 +158,9 @@ router.post("/creative-treatment", async (req, res) => {
           : "The creative crew could not complete the treatment. Please try again.",
     });
   }
-});
+  });
 
-export default router;
+  return treatmentRouter;
+}
+
+export default createCreativeTreatmentRouter();
