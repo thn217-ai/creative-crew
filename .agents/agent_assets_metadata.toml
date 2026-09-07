@@ -1,0 +1,9 @@
+uploads = []
+generated = []
+
+[[outputs]]
+id = "vUAwYsanSx2rYvhthBVBO"
+uri = "file://artifacts/creative-crew-video/public/audio/bg_music.mp3"
+type = "audio"
+title = "Creative Crew background music"
+description = "Generated music: Cinematic minimal electronic instrumental background music scoring a dark editorial AI filmmaking product explainer. Warm analog synth pulse, restrained piano motifs, subtle cinemati…"
