@@ -9,6 +9,15 @@ Agentic Cinema Hackathon. Its current release turns a raw filmmaking brief into
 a structured, validated pre-production package using five real Google ADK
 agents backed by Gemini.
 
+## Watch the 45-second explainer
+
+[**Open the Creative Crew animated explainer →**](artifacts/creative-crew-video/)
+
+The repository includes the complete 16:9 motion project, cinematic media
+assets, synchronized instrumental score, five scenes, and export-ready recording
+lifecycle. In Replit, open the **Creative Crew — Project Explainer** artifact to
+watch or export it.
+
 > **Release scope:** the working application produces creative direction, a
 > script, textual visual direction, a production plan and shot list, creative
 > QA, and a final package summary. It does not generate images or storyboards,
