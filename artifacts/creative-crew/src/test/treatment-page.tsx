@@ -8,10 +8,15 @@ import type { CreativeProject, CreativeWorkspace } from "@workspace/api-client-r
 
 // Only the external identity SDK is stubbed. Home, its form, generated API
 // hooks, fetch error parsing, and query/mutation transitions all run for real.
+let signedIn = false;
 mock.module("@clerk/react", {
   namedExports: {
     useClerk: () => ({ signOut: async () => {} }),
-    useUser: () => ({ isLoaded: true, isSignedIn: false, user: null }),
+    useUser: () => ({
+      isLoaded: true,
+      isSignedIn: signedIn,
+      user: signedIn ? { primaryEmailAddress: null, fullName: "Test filmmaker" } : null,
+    }),
   },
 });
 const { default: Home } = await import("../pages/home");
@@ -49,12 +54,16 @@ type Reply = () => Response | Promise<Response>;
 export function renderPage(
   t: TestContext,
   handlers: {
+    signedIn?: boolean;
     workspace?: Reply;
     history?: Reply;
     project?: Reply;
     create?: Reply;
+    claim?: Reply;
   } = {},
 ) {
+  signedIn = handlers.signedIn ?? false;
+  window.history.replaceState(null, "", "/");
   const requests: { method: string; path: string; body: unknown }[] = [];
   const unexpected: string[] = [];
   const client = new QueryClient({
@@ -70,7 +79,7 @@ export function renderPage(
     const method = init?.method ?? "GET";
     requests.push({ method, path, body: init?.body ? JSON.parse(String(init.body)) : undefined });
     if (method === "GET" && path === "/api/creative-workspace") {
-      return handlers.workspace ? handlers.workspace() : json(workspace);
+      return handlers.workspace ? handlers.workspace() : json({ ...workspace, signedIn });
     }
     if (method === "GET" && path === "/api/creative-projects") {
       return handlers.history ? handlers.history() : json([]);
@@ -80,6 +89,9 @@ export function renderPage(
     }
     if (method === "POST" && path === "/api/creative-treatment" && handlers.create) {
       return handlers.create();
+    }
+    if (method === "POST" && path === "/api/creative-workspace/claim" && handlers.claim) {
+      return handlers.claim();
     }
     unexpected.push(`${method} ${path}`);
     throw new Error(`Unexpected test request: ${method} ${path}`);
@@ -95,6 +107,7 @@ export function renderPage(
   render(<QueryClientProvider client={client}><Home /></QueryClientProvider>);
   return {
     user,
+    client,
     requests,
     submissions: () => requests.filter(({ method, path }) => method === "POST" && path === "/api/creative-treatment"),
   };

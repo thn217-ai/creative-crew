@@ -19,6 +19,7 @@ node_modules
 *.launch
 .settings/
 *.sublime-workspace
+*~
 
 # IDE - VSCode
 .vscode/*
@@ -47,3 +48,6 @@ Thumbs.db
 # Replit
 .cache/
 .local/
+
+# Local workspace export: contains runtime/cache state, not application source.
+/creative-crew.zip

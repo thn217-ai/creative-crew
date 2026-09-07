@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TreatmentResult } from "@/components/treatment-result";
+import { trackEvent } from "@/lib/analytics";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import {
   getGetCreativeProjectQueryKey,
@@ -74,7 +75,16 @@ export default function Home() {
     },
   });
 
-  const claimWorkspace = useClaimCreativeWorkspace();
+  const claimWorkspace = useClaimCreativeWorkspace({
+    mutation: {
+      onSuccess: (result) => {
+        trackEvent({ name: "project_claim_succeeded", claimedProjectCount: result.claimedProjectCount });
+      },
+      onError: () => {
+        trackEvent({ name: "project_claim_failed" });
+      },
+    },
+  });
 
   const form = useForm<BriefFormValues>({
     defaultValues: {
@@ -173,12 +183,12 @@ export default function Home() {
                     </div>
                   ) : (
                     <div className="flex items-center gap-3">
-                      <Link href="/sign-in" className="text-foreground/80 hover:text-foreground flex items-center gap-1.5 transition-colors" data-testid="link-sign-in">
+                      <Link href="/sign-in" onClick={() => trackEvent({ name: "account_entry_clicked", entry: "sign_in" })} className="text-foreground/80 hover:text-foreground flex items-center gap-1.5 transition-colors" data-testid="link-sign-in">
                         <LogIn className="w-3.5 h-3.5" />
                         Sign In
                       </Link>
                       <div className="w-px h-4 bg-border" />
-                      <Link href="/sign-up" className="text-primary hover:text-primary/80 transition-colors" data-testid="link-sign-up">
+                      <Link href="/sign-up" onClick={() => trackEvent({ name: "account_entry_clicked", entry: "sign_up" })} className="text-primary hover:text-primary/80 transition-colors" data-testid="link-sign-up">
                         Create Account
                       </Link>
                     </div>

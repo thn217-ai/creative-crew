@@ -1,3 +1,4 @@
 - [Gemini model availability](gemini-model-availability.md) — live API rejects 2.5 Flash for new users; use 3.6 Flash until current runtime evidence says otherwise.
 - [OpenAPI runtime compatibility](openapi-uuid-validation.md) — Orval's auto-detected Zod version can follow the server, not the generated package.
 - [UI test isolation](ui-test-isolation.md) — browser capability detection happens at import time; keep client DOM and static-render suites isolated.
+- [Safe workspace exports](workspace-exports.md) — recursive workspace archives can capture cached environment snapshots despite Git ignore rules; export from an allowlist.
