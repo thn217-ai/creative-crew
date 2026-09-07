@@ -14,6 +14,9 @@ export type AccountAnalyticsEvent =
       entry: "sign_in" | "sign_up";
     }
   | {
+      name: "authentication_completed";
+    }
+  | {
       name: "project_claim_succeeded";
       claimedProjectCount: number;
     }
@@ -36,6 +39,9 @@ export function trackEvent(event: AccountAnalyticsEvent): void {
           entry: event.entry,
           location: "workspace_header",
         });
+        break;
+      case "authentication_completed":
+        result = window.umami?.track("authentication_completed");
         break;
       case "project_claim_succeeded":
         if (
@@ -63,4 +69,18 @@ export function trackEvent(event: AccountAnalyticsEvent): void {
   } catch {
     // Analytics must never break the app.
   }
+}
+
+export function observeAuthenticationState(
+  previousSignedIn: boolean | undefined,
+  isLoaded: boolean,
+  isSignedIn: boolean,
+): boolean | undefined {
+  if (!isLoaded) return previousSignedIn;
+
+  if (previousSignedIn === false && isSignedIn) {
+    trackEvent({ name: "authentication_completed" });
+  }
+
+  return isSignedIn;
 }

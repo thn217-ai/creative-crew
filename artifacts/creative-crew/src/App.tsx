@@ -1,10 +1,11 @@
-import { type ReactNode, useEffect, useState } from 'react';
+import { type ReactNode, useEffect, useRef, useState } from 'react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider, SignIn, SignUp, Show, useUser } from '@clerk/react';
 import { publishableKeyFromHost } from '@clerk/react/internal';
 import { shadcn } from '@clerk/themes';
 import { ErrorBoundary } from '@/components/error-boundary';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { observeAuthenticationState } from '@/lib/analytics';
 import NotFound from '@/pages/not-found';
 import Home from '@/pages/home';
 import {
@@ -107,6 +108,16 @@ function SignUpPage() {
 
 function PrincipalBoundary() {
   const { user, isLoaded } = useUser();
+  const previousSignedIn = useRef<boolean | undefined>(undefined);
+  const isSignedIn = Boolean(user);
+
+  useEffect(() => {
+    previousSignedIn.current = observeAuthenticationState(
+      previousSignedIn.current,
+      isLoaded,
+      isSignedIn,
+    );
+  }, [isLoaded, isSignedIn]);
 
   if (!isLoaded) return <div className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground" role="status">Opening Creative Crew…</div>;
 

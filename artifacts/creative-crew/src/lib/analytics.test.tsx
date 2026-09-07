@@ -1,6 +1,7 @@
 import assert from "node:assert/strict";
 import test, { afterEach } from "node:test";
 import {
+  observeAuthenticationState,
   trackEvent,
   type AccountAnalyticsEvent,
 } from "./analytics";
@@ -41,6 +42,7 @@ test("emits each account event with its exact whitelisted payload", () => {
 
   trackEvent({ name: "account_entry_clicked", entry: "sign_in" });
   trackEvent({ name: "account_entry_clicked", entry: "sign_up" });
+  trackEvent({ name: "authentication_completed" });
   trackEvent({ name: "project_claim_succeeded", claimedProjectCount: 0 });
   trackEvent({ name: "project_claim_succeeded", claimedProjectCount: 3 });
   trackEvent({ name: "project_claim_failed" });
@@ -54,6 +56,7 @@ test("emits each account event with its exact whitelisted payload", () => {
       name: "account_entry_clicked",
       data: { entry: "sign_up", location: "workspace_header" },
     },
+    { name: "authentication_completed", data: undefined },
     {
       name: "project_claim_succeeded",
       data: { claimed_project_count: 0 },
@@ -89,6 +92,12 @@ test("strips arbitrary runtime fields instead of forwarding them", () => {
     brief: "private brief",
   } as AccountAnalyticsEvent);
   trackEvent({
+    name: "authentication_completed",
+    userId: "private-user-id",
+    email: "private@example.com",
+    token: "private-token",
+  } as AccountAnalyticsEvent);
+  trackEvent({
     name: "project_claim_failed",
     error: new Error("private error"),
     cookie: "private-cookie",
@@ -100,9 +109,67 @@ test("strips arbitrary runtime fields instead of forwarding them", () => {
       { entry: "sign_up", location: "workspace_header" },
     ],
     ["project_claim_succeeded", { claimed_project_count: 2 }],
+    ["authentication_completed"],
     ["project_claim_failed"],
   ]);
 });
+
+test("emits completion once for a confirmed signed-out to signed-in transition", () => {
+  const calls: unknown[][] = [];
+  setWindow({
+    umami: {
+      track(...args) {
+        calls.push(args);
+      },
+    },
+  });
+
+  let previous: boolean | undefined;
+  previous = observeAuthenticationState(previous, false, false);
+  previous = observeAuthenticationState(previous, true, false);
+  previous = observeAuthenticationState(previous, true, true);
+  previous = observeAuthenticationState(previous, true, true);
+  previous = observeAuthenticationState(previous, false, true);
+  previous = observeAuthenticationState(previous, true, true);
+
+  assert.equal(previous, true);
+  assert.deepEqual(calls, [["authentication_completed"]]);
+});
+
+test("does not treat an initially authenticated load as a completed transition", () => {
+  const calls: unknown[][] = [];
+  setWindow({
+    umami: {
+      track(...args) {
+        calls.push(args);
+      },
+    },
+  });
+
+  let previous: boolean | undefined;
+  previous = observeAuthenticationState(previous, false, false);
+  previous = observeAuthenticationState(previous, true, true);
+  previous = observeAuthenticationState(previous, true, true);
+
+  assert.equal(previous, true);
+  assert.deepEqual(calls, []);
+});
+
+for (const mode of ["absent", "throws", "rejects"] as const) {
+  test(`authentication state still advances when analytics ${mode}`, async () => {
+    setWindow({
+      umami: mode === "absent" ? undefined : {
+        track() {
+          if (mode === "throws") throw new Error("tracker failed");
+          return Promise.reject(new Error("tracker failed"));
+        },
+      },
+    });
+
+    assert.equal(observeAuthenticationState(false, true, true), true);
+    await new Promise<void>((resolve) => setImmediate(resolve));
+  });
+}
 
 test("skips invalid entries, counts, and unknown runtime event names", () => {
   const calls: unknown[][] = [];
