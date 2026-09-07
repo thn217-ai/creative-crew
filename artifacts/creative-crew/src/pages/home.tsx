@@ -19,7 +19,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Skeleton } from "@/components/ui/skeleton";
-import { TreatmentResult } from "@/components/treatment-result";
+import { TreatmentHistory } from "@/components/treatment-history";
 import { trackEvent } from "@/lib/analytics";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
 import {
@@ -32,7 +32,6 @@ import {
   useGetCreativeWorkspace,
   useClaimCreativeWorkspace
 } from "@workspace/api-client-react";
-
 type BriefFormValues = {
   brief: string;
 };
@@ -139,7 +138,6 @@ export default function Home() {
   };
 
   const displayedProject = isSessionValid ? selectedProject.data : undefined;
-  const treatment = displayedProject?.treatment;
   const isPending = createTreatment.isPending;
   const error = createTreatment.error ?? selectedProject.error;
 
@@ -403,19 +401,13 @@ export default function Home() {
             </div>
           )}
 
-          {!treatment && !isPending && !selectedProject.isLoading && (
+          {!displayedProject && !isPending && !selectedProject.isLoading && (
             <div className="flex-1 flex flex-col items-center justify-center text-center max-w-md mx-auto opacity-50 space-y-6">
               <Film className="w-16 h-16 text-muted-foreground stroke-[1]" />
               <div className="space-y-2">
-                <h3 className="font-serif text-2xl">
-                  {displayedProject?.status === "failed"
-                    ? "Treatment Unavailable"
-                    : "Awaiting Directives"}
-                </h3>
+                <h3 className="font-serif text-2xl">Awaiting Directives</h3>
                 <p className="text-muted-foreground text-sm">
-                  {displayedProject?.status === "failed"
-                    ? "This brief was saved, but the crew could not complete a validated treatment."
-                    : "The screening room is empty. Submit a brief to generate a structured creative treatment."}
+                  The screening room is empty. Submit a brief to generate a structured creative treatment.
                 </p>
               </div>
             </div>
@@ -448,8 +440,8 @@ export default function Home() {
             </div>
           )}
 
-          {treatment && !isPending && (
-            <TreatmentResult data={treatment} />
+          {displayedProject && !isPending && (
+            <TreatmentHistory key={displayedProject.id} projectId={displayedProject.id} />
           )}
         </div>
       </div>

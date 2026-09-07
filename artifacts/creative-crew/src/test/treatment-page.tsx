@@ -4,10 +4,10 @@ import { mock, type TestContext } from "node:test";
 import { cleanup, render } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import type { CreativeProject, CreativeWorkspace } from "@workspace/api-client-react";
 
 // Only the external identity SDK is stubbed. Home, its form, generated API
 // hooks, fetch error parsing, and query/mutation transitions all run for real.
+import type { CreativeProject, CreativeTreatmentRevision, CreativeWorkspace } from "@workspace/api-client-react";
 let signedIn = false;
 mock.module("@clerk/react", {
   namedExports: {
@@ -45,6 +45,11 @@ export const project: CreativeProject = {
   updatedAt: "2026-09-01T12:00:00.000Z",
 };
 
+export const revisions: CreativeTreatmentRevision[] = [{
+  id: "b365fe59-a438-48d5-a35f-d2f40c857eb3",
+  treatment: project.treatment!,
+  createdAt: project.updatedAt,
+}];
 export function json(body: unknown, status = 200) {
   return Response.json(body, { status });
 }
@@ -58,6 +63,7 @@ export function renderPage(
     workspace?: Reply;
     history?: Reply;
     project?: Reply;
+    treatments?: Reply;
     create?: Reply;
     claim?: Reply;
   } = {},
@@ -86,6 +92,9 @@ export function renderPage(
     }
     if (method === "GET" && path === `/api/creative-projects/${project.id}`) {
       return handlers.project ? handlers.project() : json(project);
+    }
+    if (method === "GET" && path === `/api/creative-projects/${project.id}/treatments`) {
+      return handlers.treatments ? handlers.treatments() : json(revisions);
     }
     if (method === "POST" && path === "/api/creative-treatment" && handlers.create) {
       return handlers.create();
