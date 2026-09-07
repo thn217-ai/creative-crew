@@ -8,11 +8,11 @@ flowchart LR
   W -->|OpenAPI JSON| A[Express API]
   A --> O[Ownership + request validation]
   O --> P[(PostgreSQL)]
-  O --> D[Google ADK LlmAgent]
-  D --> R[ADK InMemoryRunner]
+  O --> D[Deterministic five-stage orchestrator]
+  D --> R[Five ADK LlmAgent / InMemoryRunner stages]
   R --> G[Gemini 3.6 Flash]
-  G --> S[Structured treatment JSON]
-  S --> V[Zod server validation]
+  G --> S[Structured stage handoffs and package JSON]
+  S --> V[Strict Zod server validation]
   V --> P
   V --> W
 ```
@@ -27,12 +27,14 @@ or private ADK session identifiers.
 2. `artifacts/api-server/src/routes/creative-treatment.ts` validates the body
    and same-origin request, resolves guest/account ownership, and starts a
    durable generation record.
-3. The same route creates a Google ADK `LlmAgent` and `InMemoryRunner`, creates
-   an ADK session, and calls `runner.runAsync()`.
-4. Gemini returns JSON constrained by the ADK output schema.
-5. The API parses and validates the result with Zod before completing the
-   durable project and returning an OpenAPI-validated response.
-6. The web application renders the treatment or an explicit error state.
+3. The same route sequentially creates five Google ADK `LlmAgent` /
+   `InMemoryRunner` stages, creates stage sessions, and calls `runner.runAsync()`.
+4. Creative Director → Writer → Art Director → Production Planner → Creative QA
+   receive structured handoffs; Gemini returns JSON constrained by each schema.
+5. The server deterministically assembles five workflow stages and one package,
+   strictly validates it with Zod, then completes the durable project and returns
+   an OpenAPI-validated response.
+6. The web application renders the package or an explicit error state.
 
 ## Deterministic logic versus generated intelligence
 
@@ -44,36 +46,38 @@ or private ADK session identifiers.
 - Project claiming and owner-scoped reads
 - Project/run/treatment persistence
 - Timeout and failure-state handling
-- Zod structured-output validation
+- Stage and assembled-package Zod structured-output validation
 - Newest-first project and treatment-list ordering
 - Non-blocking analytics allowlists
 
 ### Gemini-generated intelligence
 
-One Creative Director agent interprets the brief and generates:
+Five sequential specialists generate the package:
 
-- title and logline
-- central idea and emotional direction
-- tone
-- narrative approach
-- visual principles
-- audience promise
-- creative guardrails
-
-No independent writer, visual director, production planner, or creative-QA
-agent runs in the current release.
+- Creative Director: overview and treatment (title, logline, idea, emotion,
+  tone, narrative, visual principles, audience promise, guardrails)
+- Writer: script scenes
+- Art Director: textual visual direction
+- Production Planner: production plan and shot list
+- Creative QA: status, checks, issues, corrections, and final package summary
 
 ## Structured project state
 
 PostgreSQL is the durable boundary for projects, ownership, briefs, generation
-state, private provider-session metadata, and validated treatments. The public
-project and treatment-list responses omit ADK session data.
+state, private provider-session metadata, and validated JSONB
+treatments/packages. The public project and treatment-list responses omit ADK
+session data. Old treatment-only records remain readable.
 
-The supported generation endpoint creates a new project with one treatment.
+The supported generation endpoint creates a new project with one package.
 Although the read model can return multiple treatments newest-first, there is
 currently no owner-authorized endpoint that creates another treatment for an
 existing project. Multi-revision workflow claims are therefore outside this
 release.
+
+The package viewer exposes workflow milestones; project overview and treatment;
+script scenes; textual visual direction; production plan and shot list; Creative
+QA; and the final package summary. It conditionally renders old
+treatment-only records without requiring their newer package fields.
 
 The ADK runner itself is currently in-memory for one bounded request. Durable
 session identity and completion state exist to support auditability and future
@@ -129,7 +133,8 @@ public publishable configuration.
 
 ## Scope boundary
 
-This release implements real brief → Google ADK Creative Director → Gemini →
-validated, persisted creative treatment. Script, storyboard, shot-list,
-production-plan, specialist-agent orchestration, independent creative QA, and
-exportable final-package assembly are intentionally deferred.
+This release implements real brief → deterministic orchestrator → five
+sequential Google ADK specialists → Gemini → validated, persisted
+pre-production package. Image/storyboard generation, autonomous correction,
+exports, sophisticated revision workflow, and production deployment are
+intentionally deferred.

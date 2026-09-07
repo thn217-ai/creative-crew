@@ -196,7 +196,7 @@ export default function Home() {
             </div>
 
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Submit your raw creative brief. Our digital production team will synthesize a structured treatment, ready for pre-production.
+              Submit your raw creative brief. Our digital production team will synthesize a structured pre-production package.
             </p>
           </header>
 
@@ -308,11 +308,11 @@ export default function Home() {
                   {isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 animate-spin" />
-                      Processing
+                      Generating Package
                     </>
                   ) : (
                     <>
-                      Generate Treatment
+                      Generate Pre-Production Package
                       <ArrowRight className="w-4 h-4" />
                     </>
                   )}
@@ -354,7 +354,7 @@ export default function Home() {
               )}
               {isSessionValid && projectHistory.data?.length === 0 && (
                 <p className="text-xs text-muted-foreground">
-                  Completed and attempted treatments will appear here.
+                  Completed and attempted pre-production packages will appear here.
                 </p>
               )}
               {isSessionValid && projectHistory.data?.map((project) => (
@@ -372,7 +372,7 @@ export default function Home() {
                     {project.treatment?.title ??
                       (project.status === "failed"
                         ? "Generation unsuccessful"
-                        : "Treatment in progress")}
+                        : "Pre-production package in progress")}
                   </span>
                   <span className="mt-1 flex items-center justify-between gap-3 font-mono text-[10px] uppercase tracking-wider text-muted-foreground">
                     <span>{project.status}</span>
@@ -396,7 +396,7 @@ export default function Home() {
             <div role="alert" className="mb-8 p-6 bg-destructive/10 border border-destructive/20 rounded-lg flex flex-col gap-2">
               <h3 className="text-destructive font-bold text-lg">System Fault</h3>
               <p className="text-destructive/80 text-sm">
-                {error.data?.error || "Failed to generate treatment."}
+                {error.data?.error || "Failed to generate pre-production package."}
               </p>
             </div>
           )}
@@ -407,20 +407,20 @@ export default function Home() {
               <div className="space-y-2">
                 <h3 className="font-serif text-2xl">Awaiting Directives</h3>
                 <p className="text-muted-foreground text-sm">
-                  The screening room is empty. Submit a brief to generate a structured creative treatment.
+                  The screening room is empty. Submit a brief to generate a structured pre-production package.
                 </p>
               </div>
             </div>
           )}
 
           {(isPending || selectedProject.isLoading) && (
-            <div role="status" aria-label="Treatment progress" aria-live="polite" className="flex-1 flex flex-col justify-center max-w-2xl mx-auto w-full space-y-12 animate-in fade-in duration-1000">
+            <div role="status" aria-label="Pre-production package progress" aria-live="polite" className="flex-1 flex flex-col justify-center max-w-2xl mx-auto w-full space-y-12 animate-in fade-in duration-1000">
               <div className="space-y-4">
                 <div className="flex items-center gap-3 text-primary">
                   <Sparkles className="w-5 h-5 animate-pulse" />
                   <span className="font-mono text-sm uppercase tracking-widest">Google ADK / Gemini</span>
                 </div>
-                <h2 className="text-3xl font-serif font-bold text-foreground">Synthesizing Vision...</h2>
+                <h2 className="text-3xl font-serif font-bold text-foreground">Generating Pre-Production Package...</h2>
               </div>
               
               <div className="space-y-8">

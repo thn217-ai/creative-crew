@@ -33,6 +33,13 @@ export const CreateCreativeTreatmentBody = zod.object({
 export const createCreativeTreatmentResponseIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
 
 
+
+
+
+
+
+
+
 export const CreateCreativeTreatmentResponse = zod.object({
   "id": zod.string().regex(createCreativeTreatmentResponseIdRegExp),
   "brief": zod.string(),
@@ -47,7 +54,56 @@ export const CreateCreativeTreatmentResponse = zod.object({
   "visualPrinciples": zod.array(zod.string()),
   "audiencePromise": zod.string(),
   "guardrails": zod.array(zod.string()),
-  "generatedBy": zod.enum(['google-adk-gemini'])
+  "generatedBy": zod.enum(['google-adk-gemini']),
+  "projectInterpretation": zod.string().optional(),
+  "constraints": zod.array(zod.string()).optional(),
+  "script": zod.object({
+  "durationSeconds": zod.number().int().min(1),
+  "scenes": zod.array(zod.object({
+  "sceneNumber": zod.number().int().min(1),
+  "timing": zod.string(),
+  "action": zod.string(),
+  "dialogueOrVoiceover": zod.string().nullable()
+})).min(1)
+}).optional(),
+  "visualDirection": zod.object({
+  "visualLanguage": zod.string(),
+  "palette": zod.array(zod.string()),
+  "environment": zod.string(),
+  "lightingMood": zod.string(),
+  "compositionPrinciples": zod.array(zod.string()),
+  "productionDesign": zod.string(),
+  "wardrobe": zod.string()
+}).optional(),
+  "productionPlan": zod.object({
+  "locations": zod.array(zod.string()),
+  "talent": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "productionRequirements": zod.array(zod.string()),
+  "practicalNotes": zod.array(zod.string()),
+  "shots": zod.array(zod.object({
+  "shotNumber": zod.number().int().min(1),
+  "sceneNumber": zod.number().int().min(1),
+  "framing": zod.string(),
+  "action": zod.string(),
+  "purpose": zod.string()
+})).min(1)
+}).optional(),
+  "creativeQa": zod.object({
+  "status": zod.enum(['PASS', 'NEEDS_REVISION']),
+  "checks": zod.array(zod.object({
+  "category": zod.enum(['brief_alignment', 'contradictions', 'narrative_consistency', 'visual_consistency', 'production_feasibility', 'unwanted_cliches', 'missing_requirements', 'continuity']),
+  "status": zod.enum(['PASS', 'ADVISORY', 'ISSUE']),
+  "finding": zod.string()
+})).min(1),
+  "issues": zod.array(zod.string()),
+  "corrections": zod.array(zod.string())
+}).optional(),
+  "finalPackageSummary": zod.string().optional(),
+  "workflowStages": zod.array(zod.object({
+  "specialist": zod.enum(['Creative Director', 'Writer', 'Art Director', 'Production Planner', 'Creative QA']),
+  "message": zod.string()
+})).optional()
 }),zod.null()]),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -59,6 +115,13 @@ export const CreateCreativeTreatmentResponse = zod.object({
  * @summary List creative project history
  */
 export const listCreativeProjectsResponseIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
+
+
+
+
+
+
+
 
 
 export const ListCreativeProjectsResponseItem = zod.object({
@@ -75,7 +138,56 @@ export const ListCreativeProjectsResponseItem = zod.object({
   "visualPrinciples": zod.array(zod.string()),
   "audiencePromise": zod.string(),
   "guardrails": zod.array(zod.string()),
-  "generatedBy": zod.enum(['google-adk-gemini'])
+  "generatedBy": zod.enum(['google-adk-gemini']),
+  "projectInterpretation": zod.string().optional(),
+  "constraints": zod.array(zod.string()).optional(),
+  "script": zod.object({
+  "durationSeconds": zod.number().int().min(1),
+  "scenes": zod.array(zod.object({
+  "sceneNumber": zod.number().int().min(1),
+  "timing": zod.string(),
+  "action": zod.string(),
+  "dialogueOrVoiceover": zod.string().nullable()
+})).min(1)
+}).optional(),
+  "visualDirection": zod.object({
+  "visualLanguage": zod.string(),
+  "palette": zod.array(zod.string()),
+  "environment": zod.string(),
+  "lightingMood": zod.string(),
+  "compositionPrinciples": zod.array(zod.string()),
+  "productionDesign": zod.string(),
+  "wardrobe": zod.string()
+}).optional(),
+  "productionPlan": zod.object({
+  "locations": zod.array(zod.string()),
+  "talent": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "productionRequirements": zod.array(zod.string()),
+  "practicalNotes": zod.array(zod.string()),
+  "shots": zod.array(zod.object({
+  "shotNumber": zod.number().int().min(1),
+  "sceneNumber": zod.number().int().min(1),
+  "framing": zod.string(),
+  "action": zod.string(),
+  "purpose": zod.string()
+})).min(1)
+}).optional(),
+  "creativeQa": zod.object({
+  "status": zod.enum(['PASS', 'NEEDS_REVISION']),
+  "checks": zod.array(zod.object({
+  "category": zod.enum(['brief_alignment', 'contradictions', 'narrative_consistency', 'visual_consistency', 'production_feasibility', 'unwanted_cliches', 'missing_requirements', 'continuity']),
+  "status": zod.enum(['PASS', 'ADVISORY', 'ISSUE']),
+  "finding": zod.string()
+})).min(1),
+  "issues": zod.array(zod.string()),
+  "corrections": zod.array(zod.string())
+}).optional(),
+  "finalPackageSummary": zod.string().optional(),
+  "workflowStages": zod.array(zod.object({
+  "specialist": zod.enum(['Creative Director', 'Writer', 'Art Director', 'Production Planner', 'Creative QA']),
+  "message": zod.string()
+})).optional()
 }),zod.null()]),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -127,6 +239,13 @@ export const GetCreativeProjectParams = zod.object({
 export const getCreativeProjectResponseIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
 
 
+
+
+
+
+
+
+
 export const GetCreativeProjectResponse = zod.object({
   "id": zod.string().regex(getCreativeProjectResponseIdRegExp),
   "brief": zod.string(),
@@ -141,7 +260,56 @@ export const GetCreativeProjectResponse = zod.object({
   "visualPrinciples": zod.array(zod.string()),
   "audiencePromise": zod.string(),
   "guardrails": zod.array(zod.string()),
-  "generatedBy": zod.enum(['google-adk-gemini'])
+  "generatedBy": zod.enum(['google-adk-gemini']),
+  "projectInterpretation": zod.string().optional(),
+  "constraints": zod.array(zod.string()).optional(),
+  "script": zod.object({
+  "durationSeconds": zod.number().int().min(1),
+  "scenes": zod.array(zod.object({
+  "sceneNumber": zod.number().int().min(1),
+  "timing": zod.string(),
+  "action": zod.string(),
+  "dialogueOrVoiceover": zod.string().nullable()
+})).min(1)
+}).optional(),
+  "visualDirection": zod.object({
+  "visualLanguage": zod.string(),
+  "palette": zod.array(zod.string()),
+  "environment": zod.string(),
+  "lightingMood": zod.string(),
+  "compositionPrinciples": zod.array(zod.string()),
+  "productionDesign": zod.string(),
+  "wardrobe": zod.string()
+}).optional(),
+  "productionPlan": zod.object({
+  "locations": zod.array(zod.string()),
+  "talent": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "productionRequirements": zod.array(zod.string()),
+  "practicalNotes": zod.array(zod.string()),
+  "shots": zod.array(zod.object({
+  "shotNumber": zod.number().int().min(1),
+  "sceneNumber": zod.number().int().min(1),
+  "framing": zod.string(),
+  "action": zod.string(),
+  "purpose": zod.string()
+})).min(1)
+}).optional(),
+  "creativeQa": zod.object({
+  "status": zod.enum(['PASS', 'NEEDS_REVISION']),
+  "checks": zod.array(zod.object({
+  "category": zod.enum(['brief_alignment', 'contradictions', 'narrative_consistency', 'visual_consistency', 'production_feasibility', 'unwanted_cliches', 'missing_requirements', 'continuity']),
+  "status": zod.enum(['PASS', 'ADVISORY', 'ISSUE']),
+  "finding": zod.string()
+})).min(1),
+  "issues": zod.array(zod.string()),
+  "corrections": zod.array(zod.string())
+}).optional(),
+  "finalPackageSummary": zod.string().optional(),
+  "workflowStages": zod.array(zod.object({
+  "specialist": zod.enum(['Creative Director', 'Writer', 'Art Director', 'Production Planner', 'Creative QA']),
+  "message": zod.string()
+})).optional()
 }),zod.null()]),
   "createdAt": zod.coerce.date(),
   "updatedAt": zod.coerce.date()
@@ -162,6 +330,13 @@ export const ListCreativeProjectTreatmentsParams = zod.object({
 export const listCreativeProjectTreatmentsResponseIdRegExp = new RegExp('^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$');
 
 
+
+
+
+
+
+
+
 export const ListCreativeProjectTreatmentsResponseItem = zod.object({
   "id": zod.string().regex(listCreativeProjectTreatmentsResponseIdRegExp),
   "treatment": zod.object({
@@ -174,7 +349,56 @@ export const ListCreativeProjectTreatmentsResponseItem = zod.object({
   "visualPrinciples": zod.array(zod.string()),
   "audiencePromise": zod.string(),
   "guardrails": zod.array(zod.string()),
-  "generatedBy": zod.enum(['google-adk-gemini'])
+  "generatedBy": zod.enum(['google-adk-gemini']),
+  "projectInterpretation": zod.string().optional(),
+  "constraints": zod.array(zod.string()).optional(),
+  "script": zod.object({
+  "durationSeconds": zod.number().int().min(1),
+  "scenes": zod.array(zod.object({
+  "sceneNumber": zod.number().int().min(1),
+  "timing": zod.string(),
+  "action": zod.string(),
+  "dialogueOrVoiceover": zod.string().nullable()
+})).min(1)
+}).optional(),
+  "visualDirection": zod.object({
+  "visualLanguage": zod.string(),
+  "palette": zod.array(zod.string()),
+  "environment": zod.string(),
+  "lightingMood": zod.string(),
+  "compositionPrinciples": zod.array(zod.string()),
+  "productionDesign": zod.string(),
+  "wardrobe": zod.string()
+}).optional(),
+  "productionPlan": zod.object({
+  "locations": zod.array(zod.string()),
+  "talent": zod.array(zod.string()),
+  "props": zod.array(zod.string()),
+  "productionRequirements": zod.array(zod.string()),
+  "practicalNotes": zod.array(zod.string()),
+  "shots": zod.array(zod.object({
+  "shotNumber": zod.number().int().min(1),
+  "sceneNumber": zod.number().int().min(1),
+  "framing": zod.string(),
+  "action": zod.string(),
+  "purpose": zod.string()
+})).min(1)
+}).optional(),
+  "creativeQa": zod.object({
+  "status": zod.enum(['PASS', 'NEEDS_REVISION']),
+  "checks": zod.array(zod.object({
+  "category": zod.enum(['brief_alignment', 'contradictions', 'narrative_consistency', 'visual_consistency', 'production_feasibility', 'unwanted_cliches', 'missing_requirements', 'continuity']),
+  "status": zod.enum(['PASS', 'ADVISORY', 'ISSUE']),
+  "finding": zod.string()
+})).min(1),
+  "issues": zod.array(zod.string()),
+  "corrections": zod.array(zod.string())
+}).optional(),
+  "finalPackageSummary": zod.string().optional(),
+  "workflowStages": zod.array(zod.object({
+  "specialist": zod.enum(['Creative Director', 'Writer', 'Art Director', 'Production Planner', 'Creative QA']),
+  "message": zod.string()
+})).optional()
 }),
   "createdAt": zod.coerce.date()
 })

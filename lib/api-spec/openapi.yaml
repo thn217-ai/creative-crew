@@ -265,6 +265,26 @@ components:
         generatedBy:
           type: string
           enum: [google-adk-gemini]
+        projectInterpretation:
+          type: string
+        constraints:
+          type: array
+          items:
+            type: string
+        script:
+          $ref: "#/components/schemas/CreativeScript"
+        visualDirection:
+          $ref: "#/components/schemas/VisualDirection"
+        productionPlan:
+          $ref: "#/components/schemas/ProductionPlan"
+        creativeQa:
+          $ref: "#/components/schemas/CreativeQa"
+        finalPackageSummary:
+          type: string
+        workflowStages:
+          type: array
+          items:
+            $ref: "#/components/schemas/WorkflowStage"
       required:
         - title
         - logline
@@ -276,6 +296,165 @@ components:
         - audiencePromise
         - guardrails
         - generatedBy
+    CreativeScript:
+      type: object
+      required: [durationSeconds, scenes]
+      properties:
+        durationSeconds:
+          type: integer
+          minimum: 1
+        scenes:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ScriptScene"
+    ScriptScene:
+      type: object
+      required: [sceneNumber, timing, action, dialogueOrVoiceover]
+      properties:
+        sceneNumber:
+          type: integer
+          minimum: 1
+        timing:
+          type: string
+        action:
+          type: string
+        dialogueOrVoiceover:
+          type: ["string", "null"]
+    VisualDirection:
+      type: object
+      required:
+        - visualLanguage
+        - palette
+        - environment
+        - lightingMood
+        - compositionPrinciples
+        - productionDesign
+        - wardrobe
+      properties:
+        visualLanguage:
+          type: string
+        palette:
+          type: array
+          items:
+            type: string
+        environment:
+          type: string
+        lightingMood:
+          type: string
+        compositionPrinciples:
+          type: array
+          items:
+            type: string
+        productionDesign:
+          type: string
+        wardrobe:
+          type: string
+    ProductionPlan:
+      type: object
+      required:
+        - locations
+        - talent
+        - props
+        - productionRequirements
+        - practicalNotes
+        - shots
+      properties:
+        locations:
+          type: array
+          items:
+            type: string
+        talent:
+          type: array
+          items:
+            type: string
+        props:
+          type: array
+          items:
+            type: string
+        productionRequirements:
+          type: array
+          items:
+            type: string
+        practicalNotes:
+          type: array
+          items:
+            type: string
+        shots:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/ProductionShot"
+    ProductionShot:
+      type: object
+      required: [shotNumber, sceneNumber, framing, action, purpose]
+      properties:
+        shotNumber:
+          type: integer
+          minimum: 1
+        sceneNumber:
+          type: integer
+          minimum: 1
+        framing:
+          type: string
+        action:
+          type: string
+        purpose:
+          type: string
+    CreativeQa:
+      type: object
+      required: [status, checks, issues, corrections]
+      properties:
+        status:
+          type: string
+          enum: [PASS, NEEDS_REVISION]
+        checks:
+          type: array
+          minItems: 1
+          items:
+            $ref: "#/components/schemas/CreativeQaCheck"
+        issues:
+          type: array
+          items:
+            type: string
+        corrections:
+          type: array
+          items:
+            type: string
+    CreativeQaCheck:
+      type: object
+      required: [category, status, finding]
+      properties:
+        category:
+          type: string
+          enum:
+            - brief_alignment
+            - contradictions
+            - narrative_consistency
+            - visual_consistency
+            - production_feasibility
+            - unwanted_cliches
+            - missing_requirements
+            - continuity
+        status:
+          type: string
+          enum: [PASS, ADVISORY, ISSUE]
+        finding:
+          type: string
+    WorkflowStage:
+      type: object
+      required: [specialist, message]
+      properties:
+        specialist:
+          type: string
+          enum:
+            - Creative Director
+            - Writer
+            - Art Director
+            - Production Planner
+            - Creative QA
+        message:
+          type: string
     CreativeProject:
       type: object
       properties:

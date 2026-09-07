@@ -5,6 +5,7 @@ import type { Request, Response } from "express";
 import {
   InMemoryRunner,
   LlmAgent,
+  type LlmAgentSchema,
 } from "@google/adk";
 import {
   CreateCreativeTreatmentBody,
@@ -49,24 +50,80 @@ export const adkTreatmentSchema = z.object({
   generatedBy: z.literal("google-adk-gemini"),
 });
 
-function createTreatmentAgent() {
+const creativeDirectorSchema = adkTreatmentSchema.extend({
+  projectInterpretation: z.string(),
+  constraints: z.array(z.string()),
+});
+const writerSchema = z.object({
+  script: z.object({
+    durationSeconds: z.number().int().min(1),
+    scenes: z.array(z.object({
+      sceneNumber: z.number().int().min(1),
+      timing: z.string(),
+      action: z.string(),
+      dialogueOrVoiceover: z.string().nullable(),
+    })).min(1),
+  }),
+});
+const artDirectorSchema = z.object({
+  visualDirection: z.object({
+    visualLanguage: z.string(), palette: z.array(z.string()), environment: z.string(),
+    lightingMood: z.string(), compositionPrinciples: z.array(z.string()),
+    productionDesign: z.string(), wardrobe: z.string(),
+  }),
+});
+const productionPlannerSchema = z.object({
+  productionPlan: z.object({
+    locations: z.array(z.string()), talent: z.array(z.string()), props: z.array(z.string()),
+    productionRequirements: z.array(z.string()), practicalNotes: z.array(z.string()),
+    shots: z.array(z.object({
+      shotNumber: z.number().int().min(1), sceneNumber: z.number().int().min(1),
+      framing: z.string(), action: z.string(), purpose: z.string(),
+    })).min(1),
+  }),
+});
+const creativeQaSchema = z.object({
+  creativeQa: z.object({
+    status: z.enum(["PASS", "NEEDS_REVISION"]),
+    checks: z.array(z.object({
+      category: z.enum(["brief_alignment", "contradictions", "narrative_consistency", "visual_consistency", "production_feasibility", "unwanted_cliches", "missing_requirements", "continuity"]),
+      status: z.enum(["PASS", "ADVISORY", "ISSUE"]), finding: z.string(),
+    })).min(1),
+    issues: z.array(z.string()), corrections: z.array(z.string()),
+  }),
+  finalPackageSummary: z.string(),
+});
+const workflowStagesSchema = z.array(z.object({
+  specialist: z.enum(["Creative Director", "Writer", "Art Director", "Production Planner", "Creative QA"]),
+  message: z.string(),
+})).length(5);
+
+/** New work must be a complete crew package; older records remain readable. */
+export const completeTreatmentSchema = adkTreatmentSchema
+  .extend(creativeDirectorSchema.shape)
+  .extend(writerSchema.shape)
+  .extend(artDirectorSchema.shape)
+  .extend(productionPlannerSchema.shape)
+  .extend(creativeQaSchema.shape)
+  .extend({ workflowStages: workflowStagesSchema });
+
+function createTreatmentAgent(
+  name: string,
+  description: string,
+  instruction: string,
+  outputSchema: LlmAgentSchema,
+  maxOutputTokens: number,
+) {
   return new LlmAgent({
-    name: "creative_director",
+    name,
     model: MODEL,
-    description:
-      "A senior creative director who turns film briefs into coherent creative treatments.",
-    instruction: [
-      "You are the Creative Director inside Creative Crew, a professional pre-production organization.",
-      "Interpret the filmmaker's brief faithfully and return one decisive, production-aware creative treatment.",
-      "Avoid stereotypes, generic AI language, unsupported claims, and lists of alternative concepts.",
-      "Make every field specific enough to guide a writer, art director, and production planner downstream.",
-      "The generatedBy field must always be exactly google-adk-gemini.",
-    ].join(" "),
-    outputSchema: adkTreatmentSchema,
+    description,
+    instruction,
+    outputSchema,
     includeContents: "none",
     generateContentConfig: {
-      temperature: 0.75,
-      maxOutputTokens: 2400,
+      temperature: 0.55,
+      maxOutputTokens,
     },
   });
 }
@@ -80,59 +137,103 @@ export async function generateTreatment(
   brief: string,
   context: AdkRunContext,
 ): Promise<unknown> {
-  const agent = createTreatmentAgent();
-  const runner = new InMemoryRunner({
-    agent,
-    appName: APP_NAME,
-  });
-
-  await runner.sessionService.createSession({
-    appName: APP_NAME,
-    userId: context.userId,
-    sessionId: context.sessionId,
-  });
-
-  const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), RUN_TIMEOUT_MS);
-  let finalText = "";
-
-  try {
-    for await (const event of runner.runAsync({
-      userId: context.userId,
-      sessionId: context.sessionId,
-      newMessage: {
-        role: "user",
-        parts: [{ text: brief }],
-      },
-      abortSignal: controller.signal,
-    })) {
-      if (event.errorMessage) {
-        throw new Error(event.errorMessage);
+  const runStage = async <T>(
+    specialist: string,
+    description: string,
+    instruction: string,
+    outputSchema: z.ZodType<T> & LlmAgentSchema,
+    input: unknown,
+    maxOutputTokens = 2400,
+  ): Promise<T> => {
+    const stageId = specialist.toLowerCase().replaceAll(" ", "-");
+    const runner = new InMemoryRunner({
+      agent: createTreatmentAgent(
+        stageId,
+        description,
+        instruction,
+        outputSchema,
+        maxOutputTokens,
+      ),
+      appName: APP_NAME,
+    });
+    const sessionId = `${context.sessionId}-${stageId}`;
+    await runner.sessionService.createSession({
+      appName: APP_NAME, userId: context.userId, sessionId,
+    });
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), RUN_TIMEOUT_MS);
+    let finalText = "";
+    try {
+      for await (const event of runner.runAsync({
+        userId: context.userId,
+        sessionId,
+        newMessage: { role: "user", parts: [{ text: JSON.stringify(input) }] },
+        abortSignal: controller.signal,
+      })) {
+        if (event.errorMessage) throw new Error(event.errorMessage);
+        const text = (event.content?.parts ?? [])
+          .map((part) => ("text" in part ? part.text : ""))
+          .filter(Boolean).join("");
+        if (text) finalText = text;
       }
-
-      const eventText = (event.content?.parts ?? [])
-        .map((part) => ("text" in part ? part.text : ""))
-        .filter(Boolean)
-        .join("");
-
-      if (eventText) finalText = eventText;
+    } finally {
+      clearTimeout(timeout);
     }
-  } finally {
-    clearTimeout(timeout);
-  }
+    if (!finalText) throw new Error(`Gemini returned no ${specialist} output.`);
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(finalText);
+    } catch {
+      throw new Error(`Gemini returned malformed ${specialist} output.`);
+    }
+    return outputSchema.parse(parsed);
+  };
 
-  if (!finalText) {
-    throw new Error("Gemini returned no final treatment.");
-  }
+  const director = await runStage(
+    "Creative Director",
+    "A senior creative director who creates decisive production-aware treatments.",
+    "Return only the specified structured creative direction. Faithfully interpret the brief, avoid stereotypes and generic language, and set generatedBy to google-adk-gemini.",
+    creativeDirectorSchema, { brief },
+  );
+  const writer = await runStage(
+    "Writer",
+    "A screenwriter who turns approved creative direction into an executable script.",
+    "Return only the specified structured script. Treat supplied creative direction as authoritative.",
+    writerSchema, { brief, creativeDirection: director },
+  );
+  const artDirector = await runStage(
+    "Art Director",
+    "An art director who makes practical visual direction from the approved script.",
+    "Return only the specified structured visual direction. Respect supplied creative direction and script.",
+    artDirectorSchema, { brief, creativeDirection: director, script: writer.script },
+  );
+  const productionPlanner = await runStage(
+    "Production Planner",
+    "A production planner who creates feasible shooting plans.",
+    "Return only the specified structured production plan. Map shots to supplied script scenes.",
+    productionPlannerSchema,
+    { brief, creativeDirection: director, script: writer.script, visualDirection: artDirector.visualDirection },
+    4000,
+  );
+  const qa = await runStage(
+    "Creative QA",
+    "A creative QA specialist who verifies complete production packages.",
+    "Return only the specified QA report and package summary. Check supplied work against the brief without revealing reasoning.",
+    creativeQaSchema,
+    { brief, creativeDirection: director, script: writer.script, visualDirection: artDirector.visualDirection, productionPlan: productionPlanner.productionPlan },
+    3200,
+  );
 
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(finalText);
-  } catch {
-    throw new Error("Gemini returned malformed structured output.");
-  }
-
-  return parsed;
+  return completeTreatmentSchema.parse({
+    ...director, ...writer, ...artDirector, ...productionPlanner, ...qa,
+    workflowStages: [
+      { specialist: "Creative Director", message: "Creative direction complete." },
+      { specialist: "Writer", message: "Script complete." },
+      { specialist: "Art Director", message: "Visual direction complete." },
+      { specialist: "Production Planner", message: "Production plan complete." },
+      { specialist: "Creative QA", message: "Creative QA complete." },
+    ],
+  });
 }
 
 type TreatmentGenerator = (
@@ -328,7 +429,7 @@ export function createCreativeTreatmentRouter(
           userId,
           sessionId,
         });
-        const treatment = adkTreatmentSchema.parse(generated);
+        const treatment = completeTreatmentSchema.parse(generated);
         const project = await repository.completeGeneration(
           projectId,
           workspaceId,

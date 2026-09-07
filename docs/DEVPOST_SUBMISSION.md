@@ -6,8 +6,8 @@ Creative Crew
 
 ## One-line description
 
-One filmmaking brief becomes a structured, persistent creative treatment
-through a real Google ADK Creative Director powered by Gemini.
+One filmmaking brief becomes a structured, persistent pre-production package
+through five real Google ADK specialists powered by Gemini.
 
 ## Problem
 
@@ -17,19 +17,20 @@ use. Converting intent into a coherent treatment is slow and easy to fragment.
 
 ## What Creative Crew does
 
-Creative Crew accepts one filmmaking brief, runs a bounded AI
-creative-director workflow, validates the result, and presents a structured
-treatment covering concept, narrative, emotion, visual direction, audience
-promise, and guardrails. Projects and their generated treatments persist for
-later review.
+Creative Crew accepts one filmmaking brief, runs a bounded five-stage AI crew
+workflow, validates the result, and presents creative direction, script,
+textual visual direction, production plan, shot list, QA, milestones, and final
+summary. Projects and their generated packages persist for later review.
 
 ## How it works
 
 The React application sends a validated brief to an Express API. The server
-creates a durable project, runs a Google ADK `LlmAgent` through
-`InMemoryRunner`, and sends the brief to Gemini 3.6 Flash. The JSON result must
-pass a Zod schema before PostgreSQL persistence and display. Provider failures
-remain visible as failures; no fake treatment is substituted.
+creates a durable project, then deterministically invokes Creative Director,
+Writer, Art Director, Production Planner, and Creative QA Google ADK
+`LlmAgent`/`InMemoryRunner` stages on Gemini 3.6 Flash. Structured handoffs
+feed each stage. The server assembles milestones and one package; strict Zod
+validation precedes PostgreSQL JSONB persistence and display. Provider failures
+remain visible as failures; no fake package is substituted.
 
 ## Technologies used
 
@@ -39,7 +40,7 @@ Replit.
 
 ## Google Cloud / Gemini usage
 
-Gemini provides the treatment's creative intelligence. The API key remains
+Gemini provides the specialists' creative intelligence. The API key remains
 server-side, execution has a bounded timeout, and generated output is validated
 before use. The current release uses the Gemini Developer API rather than
 Vertex AI.
@@ -47,8 +48,8 @@ Vertex AI.
 ## Google ADK / agent usage
 
 Google ADK is executable runtime infrastructure, not a documentation label.
-The server creates an ADK `LlmAgent`, creates an ADK session, and consumes
-`runner.runAsync()` events from `InMemoryRunner`. Inspect
+The server creates five sequential ADK `LlmAgent` stages, stage sessions, and
+consumes `runner.runAsync()` events from `InMemoryRunner`. Inspect
 `artifacts/api-server/src/routes/creative-treatment.ts`.
 
 ## Replit usage
@@ -59,11 +60,12 @@ configuration, artifact routing, release validation, and publishing setup.
 
 ## Key features
 
-- Real Google ADK + Gemini treatment generation
-- Strict structured-output validation
+- Five-stage real Google ADK + Gemini package generation
+- Strict stage and final-package structured-output validation
 - Guest and optional account-backed workspaces
 - Explicit browser-project claiming
-- Persistent projects and read-only treatment reopening
+- Persistent projects and read-only package reopening; older treatment-only
+  records remain readable
 - Honest loading, provider-error, timeout, and retry states
 - Owner-scoped API access
 - Privacy-safe, non-blocking analytics
@@ -80,20 +82,20 @@ configuration, artifact routing, release validation, and publishing setup.
 
 ## What we learned
 
-The most reliable agentic product path was to prove one real bounded agent
-end-to-end before expanding orchestration. Deterministic ownership, persistence,
-timeouts, and validation make generated intelligence trustworthy enough to use
-in a production-facing workflow.
+Structured handoffs let specialists build on approved context while the server
+retains deterministic ownership, persistence, timeout, assembly, and validation
+boundaries. A first real attempt failed honestly when the Production Planner
+output was truncated/malformed at a lower token budget (HTTP 502 and persisted
+failed run); stage-tuning that allowance led to the next real successful run.
 
 ## Known limitations
 
-- The current runtime has one Creative Director agent.
-- Output is a structured treatment, not a screenplay, storyboard, shot list, or
-  assembled production package.
-- Each generated project has one treatment; there is no revision-instruction
-  loop.
-- “Treatment approved” indicates schema validation, not human editorial review.
+- No image or storyboard generation, autonomous correction loop, exports, or
+  sophisticated revision workflow.
+- Each generated project has one package; there is no revision-instruction loop.
+- QA is generated QA, not human editorial approval.
 - The current provider path uses the Gemini Developer API, not Vertex AI.
+- No production deployment has been verified or published.
 
 ## Hosted application URL
 

@@ -1,13 +1,14 @@
-# Live creative-treatment verification
+# Live pre-production-package verification
 
 ## Verified runtime
 
-The Milestone 1 runtime was verified on September 5, 2026 against the running
-development artifacts:
+The current five-stage runtime was verified on September 7, 2026 against the
+running development artifacts:
 
 - Web workspace: `/`
 - API endpoint: `POST /api/creative-treatment`
-- Agent runtime: Google ADK `LlmAgent` and `InMemoryRunner`
+- Agent runtime: five sequential Google ADK `LlmAgent` and `InMemoryRunner`
+  stages (Creative Director, Writer, Art Director, Production Planner, Creative QA)
 - Gemini model: `gemini-3.6-flash`
 
 ## Brief submitted
@@ -19,61 +20,30 @@ development artifacts:
 > clichés. Build toward the opening-night reveal, with tactile sound, elegant
 > natural light, and a confident sense of community.
 
-## API result
+## Real acceptance result — September 7, 2026
 
-The live endpoint returned HTTP 200 with a response accepted by
-`CreateCreativeTreatmentResponse`. The generated treatment included every
-required field:
+The live endpoint returned **HTTP 201 in 45.8 seconds**. Five ADK logs confirmed
+the `GEMINI_API` backend. The response was accepted by
+`CreateCreativeTreatmentResponse` and contained a complete package:
 
-- `title`
-- `logline`
-- `centralIdea`
-- `emotionalDirection`
-- `tone`
-- `narrativeApproach`
-- `visualPrinciples`
-- `audiencePromise`
-- `guardrails`
+- overview and creative treatment
+- script with **6 scenes**
+- textual visual direction
+- production plan with **11 shots**
+- Creative QA **PASS** with **8 checks**
+- five workflow milestones and a final package summary
 - `generatedBy: "google-adk-gemini"`
 
-One verified title was **The Geometry of Warmth**. A second request submitted
-through the browser produced **Suhail: Modern Rituals of Riyadh**, confirming the
-UI used a live generation rather than a stored fixture.
+The owner-scoped persisted `GET` returned **HTTP 200** with one record and all
+package fields. No fixture or mocked provider output was used.
 
-## Browser verification
+## Failure evidence and scope
 
-A fresh browser session entered the exact brief in `input-brief` and clicked
-`button-submit`. The workspace progressed through its processing state and
-rendered `TREATMENT APPROVED` with non-empty content for every required treatment
-section and the exact `google-adk-gemini` attribution.
+An earlier real attempt used a lower Production Planner token budget. Its output
+was truncated/malformed; the request returned HTTP 502 and the run was
+persisted as failed. No fallback content was substituted. The planner allowance
+was stage-tuned, and the acceptance run above then passed.
 
-The browser-observed API request completed in approximately 8.6 seconds. No
-browser console errors, API error messages, or rendering failures were observed.
-
-## Final log check
-
-The API log recorded both verification requests as HTTP 200:
-
-- Direct API verification: approximately 9.0 seconds
-- Browser submission: approximately 8.6 seconds
-
-Both requests logged an outbound ADK request using `gemini-3.6-flash` and the
-Gemini API backend. The final browser console contained only the normal Vite
-connection messages.
-
-## Final release verification — September 7, 2026
-
-After the treatment-history and privacy-safe analytics work was merged, the
-real development endpoint was tested again with the Riyadh coffee brief.
-
-- `POST /api/creative-treatment` returned HTTP 201.
-- The returned treatment had non-empty values for every required scalar and
-  list field.
-- Attribution was exactly `google-adk-gemini`.
-- The owner-scoped treatment-list request returned HTTP 200 with one persisted
-  treatment for the newly generated project.
-- No fixture or mocked provider output was used for this check.
-
-This check verifies the implemented brief-to-treatment path. It does not verify
-separate screenplay, storyboard, shot-list, production-plan, specialist-agent,
-or creative-QA stages because those stages are not implemented.
+This verifies the development brief-to-package path, not a public production
+deployment. It does not verify image/storyboard generation, an autonomous
+correction loop, exports, or a sophisticated revision workflow.

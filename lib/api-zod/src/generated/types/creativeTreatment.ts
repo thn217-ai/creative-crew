@@ -5,7 +5,12 @@
  * API specification
  * OpenAPI spec version: 0.1.0
  */
+import type { CreativeQa } from './creativeQa';
+import type { CreativeScript } from './creativeScript';
 import type { CreativeTreatmentGeneratedBy } from './creativeTreatmentGeneratedBy';
+import type { ProductionPlan } from './productionPlan';
+import type { VisualDirection } from './visualDirection';
+import type { WorkflowStage } from './workflowStage';
 
 export interface CreativeTreatment {
   title: string;
@@ -18,4 +23,12 @@ export interface CreativeTreatment {
   audiencePromise: string;
   guardrails: string[];
   generatedBy: CreativeTreatmentGeneratedBy;
+  projectInterpretation?: string;
+  constraints?: string[];
+  script?: CreativeScript;
+  visualDirection?: VisualDirection;
+  productionPlan?: ProductionPlan;
+  creativeQa?: CreativeQa;
+  finalPackageSummary?: string;
+  workflowStages?: WorkflowStage[];
 }

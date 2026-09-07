@@ -118,7 +118,7 @@ test("renders loading safely while revision data is undefined", () => {
   assert.match(html, /data-testid="status-versions-loading"/);
   assert.match(html, /Loading saved treatment/);
   assert.ok(!html.includes("0 saved"));
-  assert.ok(!html.includes("TREATMENT APPROVED"));
+  assert.ok(!html.includes("PRE-PRODUCTION PACKAGE APPROVED"));
 });
 
 test("renders the validated empty-history state", () => {
@@ -127,7 +127,7 @@ test("renders the validated empty-history state", () => {
   assert.match(html, /0 saved/);
   assert.match(html, /data-testid="status-versions-empty"/);
   assert.match(html, /No validated treatment yet/);
-  assert.ok(!html.includes("TREATMENT APPROVED"));
+  assert.ok(!html.includes("PRE-PRODUCTION PACKAGE APPROVED"));
 });
 
 test("renders an initial error with an enabled retry control wired to retry", () => {
@@ -191,7 +191,7 @@ test("does not silently fall back when the explicitly selected ID is missing", (
   assert.match(html, /Selected treatment unavailable/);
   assert.match(html, /This saved treatment is no longer available/);
   assert.match(html, /Back to latest/);
-  assert.ok(!html.includes("TREATMENT APPROVED"));
+  assert.ok(!html.includes("PRE-PRODUCTION PACKAGE APPROVED"));
   assert.ok(!html.includes(latestTreatment.logline));
 });
 

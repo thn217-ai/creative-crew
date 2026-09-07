@@ -21,6 +21,66 @@ const validTreatment = {
   audiencePromise: "A grounded, uplifting story with cinematic scale.",
   guardrails: ["No disaster spectacle", "No anonymous heroics"],
   generatedBy: "google-adk-gemini" as const,
+  projectInterpretation:
+    "A community's practical care for its lighthouse becomes a portrait of shared resolve.",
+  constraints: ["One storm-night location cluster", "Ground all action in practical effects"],
+  script: {
+    durationSeconds: 60,
+    scenes: [
+      {
+        sceneNumber: 1,
+        timing: "0:00-0:60",
+        action: "Residents prepare the lighthouse as the storm arrives.",
+        dialogueOrVoiceover: "Keep the light on.",
+      },
+    ],
+  },
+  visualDirection: {
+    visualLanguage: "Naturalistic coastal drama",
+    palette: ["storm blue", "warm tungsten"],
+    environment: "A working coastal lighthouse and its immediate grounds",
+    lightingMood: "Practical beacon light against gathering darkness",
+    compositionPrinciples: ["Human-scale close-ups", "Purposeful wide frames"],
+    productionDesign: "Weathered, functional lighthouse interiors",
+    wardrobe: "Layered practical storm gear",
+  },
+  productionPlan: {
+    locations: ["Lighthouse interior", "Lighthouse approach"],
+    talent: ["Three local residents"],
+    props: ["Beacon controls", "Storm lanterns"],
+    productionRequirements: ["Rain effects", "Safe exterior night unit"],
+    practicalNotes: ["Schedule exterior work around weather windows"],
+    shots: [
+      {
+        shotNumber: 1,
+        sceneNumber: 1,
+        framing: "Close-up",
+        action: "A resident activates the beacon controls.",
+        purpose: "Establishes the human stakes.",
+      },
+    ],
+  },
+  creativeQa: {
+    status: "PASS" as const,
+    checks: [
+      {
+        category: "brief_alignment" as const,
+        status: "PASS" as const,
+        finding: "The package centers the requested community story.",
+      },
+    ],
+    issues: [],
+    corrections: [],
+  },
+  finalPackageSummary:
+    "A practical, intimate storm-night lighthouse film built around collective care.",
+  workflowStages: [
+    { specialist: "Creative Director" as const, message: "Creative direction complete." },
+    { specialist: "Writer" as const, message: "Script complete." },
+    { specialist: "Art Director" as const, message: "Visual direction complete." },
+    { specialist: "Production Planner" as const, message: "Production plan complete." },
+    { specialist: "Creative QA" as const, message: "Creative QA complete." },
+  ],
 };
 
 const servers: Server[] = [];
@@ -172,7 +232,7 @@ async function postTreatment(
   });
 }
 
-test("submits the brief and returns every required treatment field", async () => {
+test("persists and returns a complete staged treatment package", async () => {
   let receivedBrief = "";
   const brief =
     "Create a cinematic community story about keeping a lighthouse alive.";
@@ -216,16 +276,23 @@ test("returns a safe error when the provider fails", async () => {
   });
 });
 
-test("rejects malformed provider output instead of returning a partial treatment", async () => {
-  const response = await postTreatment(async () => ({
-    title: "Incomplete treatment",
-    generatedBy: "google-adk-gemini",
-  }), { brief: "A sufficiently detailed brief for malformed output coverage." });
+test("rejects incomplete injected treatment packages before persistence", async () => {
+  const { finalPackageSummary: _summary, ...incompleteTreatment } = validTreatment;
+  const repository = createMemoryRepository();
+  const response = await postTreatment(async () => incompleteTreatment, {
+    brief: "A sufficiently detailed brief for incomplete package coverage.",
+  }, repository);
 
   assert.equal(response.status, 502);
   assert.deepEqual(await response.json(), {
     error: "The creative crew could not complete the treatment. Please try again.",
   });
+  const projects = await repository.listProjects({
+    kind: "guest",
+    workspaceId: ownerId,
+  });
+  assert.equal(projects[0]?.status, "failed");
+  assert.equal(projects[0]?.treatment, null);
 });
 
 test("keeps submitted briefs after generation fails", async () => {

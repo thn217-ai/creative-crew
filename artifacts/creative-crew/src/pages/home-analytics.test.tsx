@@ -31,7 +31,7 @@ function installTracker(t: TestContext, mode: TrackerMode = "working") {
 }
 
 const claimButton = () => screen.getByRole<HTMLButtonElement>("button", { name: "Save browser projects to my account" });
-const submitButton = () => screen.getByRole<HTMLButtonElement>("button", { name: "Generate Treatment" });
+const submitButton = () => screen.getByRole<HTMLButtonElement>("button", { name: "Generate Pre-Production Package" });
 
 async function ready() {
   await waitFor(() => assert.equal(submitButton().disabled, false));
@@ -173,7 +173,7 @@ for (const mode of ["absent", "throws", "rejects"] as const) {
     await user.type(screen.getByRole("textbox", { name: /Director's Notes/ }), brief);
     await user.click(submitButton());
     await screen.findByRole("heading", { name: project.treatment!.title });
-    screen.getByText("TREATMENT APPROVED");
+    screen.getByText("PRE-PRODUCTION PACKAGE APPROVED");
     assert.deepEqual(submissions().map(({ body }) => body), [{ brief }]);
   });
 }

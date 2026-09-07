@@ -39,6 +39,113 @@ export const CreativeTreatmentGeneratedBy = {
   'google-adk-gemini': 'google-adk-gemini',
 } as const;
 
+export interface ScriptScene {
+  /** @minimum 1 */
+  sceneNumber: number;
+  timing: string;
+  action: string;
+  /** @nullable */
+  dialogueOrVoiceover: string | null;
+}
+
+export interface CreativeScript {
+  /** @minimum 1 */
+  durationSeconds: number;
+  /** @minItems 1 */
+  scenes: ScriptScene[];
+}
+
+export interface VisualDirection {
+  visualLanguage: string;
+  palette: string[];
+  environment: string;
+  lightingMood: string;
+  compositionPrinciples: string[];
+  productionDesign: string;
+  wardrobe: string;
+}
+
+export interface ProductionShot {
+  /** @minimum 1 */
+  shotNumber: number;
+  /** @minimum 1 */
+  sceneNumber: number;
+  framing: string;
+  action: string;
+  purpose: string;
+}
+
+export interface ProductionPlan {
+  locations: string[];
+  talent: string[];
+  props: string[];
+  productionRequirements: string[];
+  practicalNotes: string[];
+  /** @minItems 1 */
+  shots: ProductionShot[];
+}
+
+export type CreativeQaStatus = typeof CreativeQaStatus[keyof typeof CreativeQaStatus];
+
+
+export const CreativeQaStatus = {
+  PASS: 'PASS',
+  NEEDS_REVISION: 'NEEDS_REVISION',
+} as const;
+
+export type CreativeQaCheckCategory = typeof CreativeQaCheckCategory[keyof typeof CreativeQaCheckCategory];
+
+
+export const CreativeQaCheckCategory = {
+  brief_alignment: 'brief_alignment',
+  contradictions: 'contradictions',
+  narrative_consistency: 'narrative_consistency',
+  visual_consistency: 'visual_consistency',
+  production_feasibility: 'production_feasibility',
+  unwanted_cliches: 'unwanted_cliches',
+  missing_requirements: 'missing_requirements',
+  continuity: 'continuity',
+} as const;
+
+export type CreativeQaCheckStatus = typeof CreativeQaCheckStatus[keyof typeof CreativeQaCheckStatus];
+
+
+export const CreativeQaCheckStatus = {
+  PASS: 'PASS',
+  ADVISORY: 'ADVISORY',
+  ISSUE: 'ISSUE',
+} as const;
+
+export interface CreativeQaCheck {
+  category: CreativeQaCheckCategory;
+  status: CreativeQaCheckStatus;
+  finding: string;
+}
+
+export interface CreativeQa {
+  status: CreativeQaStatus;
+  /** @minItems 1 */
+  checks: CreativeQaCheck[];
+  issues: string[];
+  corrections: string[];
+}
+
+export type WorkflowStageSpecialist = typeof WorkflowStageSpecialist[keyof typeof WorkflowStageSpecialist];
+
+
+export const WorkflowStageSpecialist = {
+  Creative_Director: 'Creative Director',
+  Writer: 'Writer',
+  Art_Director: 'Art Director',
+  Production_Planner: 'Production Planner',
+  Creative_QA: 'Creative QA',
+} as const;
+
+export interface WorkflowStage {
+  specialist: WorkflowStageSpecialist;
+  message: string;
+}
+
 export interface CreativeTreatment {
   title: string;
   logline: string;
@@ -50,6 +157,14 @@ export interface CreativeTreatment {
   audiencePromise: string;
   guardrails: string[];
   generatedBy: CreativeTreatmentGeneratedBy;
+  projectInterpretation?: string;
+  constraints?: string[];
+  script?: CreativeScript;
+  visualDirection?: VisualDirection;
+  productionPlan?: ProductionPlan;
+  creativeQa?: CreativeQa;
+  finalPackageSummary?: string;
+  workflowStages?: WorkflowStage[];
 }
 
 export type CreativeProjectStatus = typeof CreativeProjectStatus[keyof typeof CreativeProjectStatus];

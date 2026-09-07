@@ -3,3 +3,4 @@
 - [UI test isolation](ui-test-isolation.md) — browser capability detection happens at import time; keep client DOM and static-render suites isolated.
 - [Safe workspace exports](workspace-exports.md) — recursive workspace archives can capture cached environment snapshots despite Git ignore rules; export from an allowlist.
 - [GitHub release publishing](github-release-publishing.md) — connector OAuth can manage repos but may not authenticate git push; use Replit Git for full-history publishing.
+- [Structured stage token budgets](structured-stage-token-budgets.md) — production-planning JSON needs more output headroom than lighter stages or valid model work can truncate.

@@ -10,8 +10,8 @@ with both the app and this repository ready so no time is lost navigating.
 **Say**
 
 “Filmmaking starts with a brief, but production needs a clear creative
-direction. Creative Crew turns one raw brief into one structured treatment
-through a real Google ADK agent powered by Gemini.”
+direction. Creative Crew turns one raw brief into a structured pre-production
+package through five real Google ADK specialists powered by Gemini.”
 
 **Show**
 
@@ -34,41 +34,43 @@ Click **Generate Treatment** once.
 
 **Say**
 
-“The API has created a durable project and is now running a bounded Google ADK
-Creative Director through `InMemoryRunner`. Gemini 3.6 Flash must return the
-exact treatment schema. There is no fixture fallback—if the provider fails, the
-app reports a failure and preserves the brief for retry.”
+“The API has created a durable project and now deterministically runs Creative
+Director, Writer, Art Director, Production Planner, and Creative QA through
+`InMemoryRunner`. Each Gemini 3.6 Flash stage gets a structured handoff. There
+is no fixture fallback—if a stage fails, the app reports a failure and preserves
+the brief for retry.”
 
 **Show**
 
 The live progress state. Do not cut away to a pre-generated result.
 
-## 1:20–1:55 — Walk through the treatment
+## 1:20–1:55 — Walk through the package
 
 After the live result appears, show:
 
-- title and logline
-- central idea and emotional direction
-- tone and narrative approach
-- visual principles
-- audience promise and guardrails
+- workflow milestones and project overview
+- title, logline, creative direction, and guardrails
+- script scenes and textual visual direction
+- production plan and shot list
+- Creative QA checks and final package summary
 - `google-adk-gemini` attribution
 
 **Say**
 
-“The server validates this structured response before it is persisted or shown.
-‘Treatment approved’ means schema-approved—not a fake human review.”
+“The server strictly validates each structured handoff and the assembled final
+package before persistence or display. QA is not a human review and does not
+autonomously correct the package.”
 
 ## 1:55–2:15 — Show persistence
 
 Select the generated project in the saved-project list and reopen its persisted
-treatment.
+package.
 
 **Say**
 
-“Projects and validated treatments persist in PostgreSQL and can be reopened.
-Each generated project currently has one treatment; this release does not
-pretend to have a revision-prompt loop.”
+“Projects and validated packages persist in PostgreSQL and can be reopened.
+Older treatment-only records remain readable. Each project currently has one
+package; this release does not pretend to have a revision-prompt loop.”
 
 ## 2:15–2:40 — Establish architecture and safeguards
 
@@ -78,8 +80,7 @@ Open:
 
 Point to:
 
-- `LlmAgent`
-- `InMemoryRunner`
+- five sequential `LlmAgent` / `InMemoryRunner` stages
 - `gemini-3.6-flash`
 - `runner.runAsync()`
 - Zod validation
@@ -95,13 +96,15 @@ credentials and private ADK session IDs never reach the browser.”
 **Say**
 
 “Creative Crew proves the complete real path from filmmaker brief to a durable,
-validated creative treatment. The next stages—specialist agents, screenplay,
-shot planning, and creative QA—are intentionally outside this release.”
+validated package. It does not generate images or storyboards, autonomously
+correct output, export files, offer sophisticated revisions, or have a verified
+production deployment.”
 
 ## Recording safety checklist
 
 - Use only a real live generation.
-- Do not claim separate writer, visual, production, or QA agents.
+- Do not claim image/storyboard generation, autonomous correction, exports,
+  sophisticated revisions, or a public production URL.
 - Do not expose Replit Secrets, cookies, IDs, database credentials, or account
   details on screen.
 - If Gemini fails during recording, show the honest error briefly and retry; do

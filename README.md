@@ -1,18 +1,19 @@
 # Creative Crew
 
 **ONE BRIEF.**  
-**ONE GOOGLE ADK CREATIVE DIRECTOR.**  
-**ONE STRUCTURED CREATIVE TREATMENT.**
+**FIVE GOOGLE ADK SPECIALISTS.**
+**ONE STRUCTURED PRE-PRODUCTION PACKAGE.**
 
 Creative Crew is a filmmaker-facing web application built for the Google Cloud
 Agentic Cinema Hackathon. Its current release turns a raw filmmaking brief into
-a structured, validated creative treatment using a real Google ADK agent backed
-by Gemini.
+a structured, validated pre-production package using five real Google ADK
+agents backed by Gemini.
 
-> **Release scope:** the working application currently produces a creative
-> treatment. Separate screenplay, storyboard, shot-list, production-plan,
-> specialist-agent, and automated creative-QA stages are not implemented and
-> are not claimed by this repository.
+> **Release scope:** the working application produces creative direction, a
+> script, textual visual direction, a production plan and shot list, creative
+> QA, and a final package summary. It does not generate images or storyboards,
+> run an autonomous correction loop, export files, or provide a sophisticated
+> revision workflow.
 
 ## 1. Problem
 
@@ -22,19 +23,22 @@ development, and production planning can begin.
 
 ## 2. Product
 
-Creative Crew gives a filmmaker one place to submit a brief, run a bounded AI
-creative-director workflow, review the resulting treatment, and reopen saved
-projects and their persisted treatments.
+Creative Crew gives a filmmaker one place to submit a brief, run a bounded
+five-stage AI crew workflow, review its pre-production package, and reopen saved
+projects and their persisted packages.
 
 ## 3. Core workflow
 
 1. A filmmaker enters a brief of at least 20 characters.
 2. The Express API validates the request and creates a durable project/run.
-3. A Google ADK `LlmAgent` runs through an `InMemoryRunner`.
-4. Gemini 3.6 Flash returns schema-constrained JSON.
-5. The API validates and persists the treatment.
-6. The React application renders the treatment and its Google attribution.
-7. Saved projects and their persisted treatments can be reopened later.
+3. The server sequentially runs Creative Director, Writer, Art Director,
+   Production Planner, and Creative QA Google ADK `LlmAgent` stages through
+   `InMemoryRunner`.
+4. Each Gemini 3.6 Flash stage receives structured handoffs from prior stages.
+5. The server deterministically assembles workflow milestones and one final
+   package, then strictly validates it with Zod before persistence.
+6. The React application renders the package and its Google attribution.
+7. Saved projects and their persisted packages can be reopened later.
 
 Failures remain failures: the application does not substitute fixture content
 or report a treatment as approved when Gemini or persistence fails.
@@ -42,13 +46,13 @@ or report a treatment as approved when Gemini or persistence fails.
 ## 4. Features
 
 - Public guest workspace with signed, HTTP-only browser ownership
-- Real Google ADK and Gemini treatment generation
-- Server-validated structured output
-- PostgreSQL project, run, and treatment persistence
+- Five-stage real Google ADK and Gemini generation
+- Strict server-validated structured package output
+- PostgreSQL project, run, and JSONB treatment/package persistence
 - Optional Clerk account access
 - Explicit claiming of browser projects into an account
 - Account-scoped project access across sessions
-- Read-only persisted-treatment viewer for each project
+- Read-only persisted package viewer for each project
 - Loading, timeout, billing, gateway, and retry states
 - Privacy-safe, non-blocking analytics events
 - Contract, API, UI, ownership, and regression tests
@@ -69,20 +73,21 @@ flow.
 
 ## 6. Agent responsibilities
 
-The implemented agent is one bounded **Creative Director**. It interprets the
-brief and returns a decisive treatment with a title, logline, central idea,
-emotional direction, tone, narrative approach, visual principles, audience
-promise, and guardrails.
-
-The UI may describe a broader “crew” product direction, but this release does
-not execute separate writer, visual-director, production-planner, or QA agents.
+One deterministic server orchestrator invokes five sequential bounded
+specialists: **Creative Director**, **Writer**, **Art Director**,
+**Production Planner**, and **Creative QA**. Their structured handoffs produce
+creative direction and overview, script scenes, textual visual direction,
+production plan and shot list, QA report, workflow milestones, and final
+package summary. The application—not Gemini—deterministically assembles the
+workflow-stage list and final persisted package.
 
 ## 7. Structured project state
 
 PostgreSQL stores project ownership, the original brief, private ADK session
-metadata, generation state, and validated treatments. Public API responses omit
-provider session data. Owner-scoped queries prevent one account or guest
-workspace from reading another owner's projects.
+metadata, generation state, and validated JSONB treatment/package data. Strict
+Zod validation occurs before persistence. Public API responses omit provider
+session data, owner-scoped queries prevent cross-owner reads, and old
+treatment-only records remain readable.
 
 ## 8. Google Cloud / Gemini integration
 
@@ -98,10 +103,11 @@ This release uses the Gemini Developer API with a server-side
 
 ## 9. Google ADK / agent architecture
 
-`createTreatmentAgent()` constructs an ADK `LlmAgent` with a Zod output schema.
-`generateTreatment()` creates an ADK session and consumes `runAsync()` events
-from `InMemoryRunner`. The final text is parsed and validated again before it is
-persisted or returned.
+`createTreatmentAgent()` constructs each ADK `LlmAgent` with its stage-specific
+Zod output schema. `generateTreatment()` creates an ADK session and consumes
+`runAsync()` events from an `InMemoryRunner` for each sequential stage. Each
+handoff and the assembled final package are parsed and validated before
+persistence or return.
 
 ## 10. Replit track / Replit Agent usage
 
@@ -212,20 +218,21 @@ Do not infer the production URL from development environment variables.
 > opening-night reveal with tactile sound, elegant natural light, and a
 > confident sense of community.
 
-## 17. Persisted-treatment workflow
+## 17. Persisted package workflow
 
-Each successful generation creates a new project with one persisted treatment.
-The current interface can reopen that treatment read-only. The API includes a
+Each successful generation creates a new project with one persisted package.
+The current interface can reopen it read-only, including overview, treatment,
+script, visual direction, production plan, shot list, QA, milestones, and final
+summary. Older treatment-only JSONB records remain readable. The API includes a
 newest-first treatment-list response, but the supported product flow does not
-create multiple treatments for one project and does not ask Gemini to revise an
-earlier treatment.
+ask Gemini to revise an earlier package.
 
 ## 18. Creative QA
 
-The current release uses deterministic schema validation and explicit failure
-handling as quality gates. It does not run a separate Gemini creative-QA agent.
-“Treatment approved” means the output passed the server schema; it is not a
-human approval or an independent editorial review.
+Creative QA is the fifth Gemini stage. It returns PASS or NEEDS_REVISION plus
+checks, issues, and corrections; it does not autonomously re-run or correct
+earlier stages. Strict Zod validation and explicit failure handling remain
+deterministic quality gates. QA status is not human editorial approval.
 
 ## 19. Privacy / analytics notes
 
@@ -236,11 +243,12 @@ claiming, or generation. See [docs/analytics.md](docs/analytics.md).
 
 ## 20. Known limitations
 
-- One Creative Director agent; no specialist multi-agent sequence
-- Creative treatment only; no screenplay, storyboard, shot list, or export
-- One generated treatment per project; no revision-instruction loop
+- No image or storyboard generation
+- No autonomous correction loop, exports, or sophisticated revision workflow
+- One generated package per project; no revision-instruction loop
 - ADK execution is in-memory while durable run metadata lives in PostgreSQL
 - Gemini Developer API path; no Vertex AI deployment in this release
+- No production deployment has been verified or published
 - Account access depends on correctly configured Clerk environments
 - Analytics collect only after publishing with analytics enabled
 

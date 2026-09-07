@@ -1,13 +1,13 @@
 # Creative Crew
 
-A Google ADK and Gemini-powered pre-production workspace that turns one filmmaker brief into a structured creative treatment.
+A Google ADK and Gemini-powered pre-production workspace that turns one filmmaker brief into a structured pre-production package.
 
 ## Run & Operate
 
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
 - `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run test` — run the API and Creative Crew treatment regression checks (approved output, loading, provider errors, and recovery)
-- `pnpm run validate` — release gate: full typecheck + treatment regression checks
+- `pnpm run test` — run the API and Creative Crew package regression checks (approved output, loading, provider errors, and recovery)
+- `pnpm run validate` — release gate: full typecheck + package regression checks
 - `pnpm run build` — run the release gate, then build all packages
 - UI checks mount the real page and API hooks in an isolated test DOM with controlled HTTP responses and guest identity. They need no credentials, database, browser download, or live Gemini calls.
 - `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
@@ -34,17 +34,27 @@ A Google ADK and Gemini-powered pre-production workspace that turns one filmmake
 
 ## Architecture decisions
 
-- Prove one complete ADK/Gemini path before adding the multi-agent workflow.
+- The deterministic server orchestrator runs five sequential ADK/Gemini stages:
+  Creative Director, Writer, Art Director, Production Planner, and Creative QA.
+- Use structured handoffs between stages; the server assembles workflow stages
+  and one final package deterministically.
 - Keep Google credentials server-only and return explicit failures without mock output.
-- Use ADK output schemas plus server validation for every creative deliverable.
+- Use ADK output schemas plus strict server Zod validation for every stage and
+  before JSONB package persistence; old treatment-only records remain readable.
 - Signed-in accounts see only their own projects. Guests see only unclaimed projects belonging to their signed browser cookie.
 - Claiming browser projects requires an explicit signed-in confirmation. The account then owns the project and its persisted treatment; signing out does not restore guest access.
 - All browser API authentication is cookie-based. Never add browser bearer-token handling or accept user IDs from request bodies or headers.
 
 ## Product
 
-Milestone 1 accepts a film brief, runs a real Google ADK Creative Director backed by Gemini, and presents the validated creative treatment.
-Projects and validated treatments persist in PostgreSQL. Filmmakers can sign in to reopen their account library on another device and claim existing guest projects. The current generation flow creates one treatment per project.
+The current release accepts a film brief, runs five real Google ADK specialists
+backed by Gemini, and presents a validated package: overview, treatment, script,
+textual visual direction, production plan, shot list, QA, milestones, and final
+summary. Projects and validated packages persist in PostgreSQL. Filmmakers can
+sign in to reopen their account library on another device and claim existing
+guest projects. The current generation flow creates one package per project.
+It has no image/storyboard generation, autonomous correction loop, exports, or
+sophisticated revision workflow; no production deployment is verified yet.
 
 ## User preferences
 
