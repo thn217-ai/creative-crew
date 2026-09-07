@@ -1,0 +1,29 @@
+kind = "video"
+videoAspectRatio = "16:9"
+previewPath = "/creative-crew-video/"
+title = "Creative Crew — Project Explainer"
+description = "A 45–60 second cinematic animated explainer showing how Creative Crew transforms one filmmaking brief through five sequential Google ADK and Gemini specialists into one validated pre-production package."
+version = "1.0.0"
+id = "artifacts/creative-crew-video"
+router = "path"
+
+[[services]]
+name = "web"
+paths = [ "/creative-crew-video/" ]
+localPort = 21087
+
+[services.development]
+run = "pnpm --filter @workspace/creative-crew-video run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/creative-crew-video", "run", "build" ]
+serve = "static"
+publicDir = "artifacts/creative-crew-video/dist/public"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21087"
+BASE_PATH = "/creative-crew-video/"
