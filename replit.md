@@ -1,6 +1,6 @@
 # Creative Crew
 
-A Google ADK and Gemini-powered pre-production workspace that turns one filmmaker brief into a coherent production-ready package.
+A Google ADK and Gemini-powered pre-production workspace that turns one filmmaker brief into a structured creative treatment.
 
 ## Run & Operate
 
@@ -30,7 +30,7 @@ A Google ADK and Gemini-powered pre-production workspace that turns one filmmake
 - `artifacts/creative-crew` — React/Vite filmmaker workspace
 - `artifacts/api-server` — server-only Google ADK/Gemini runtime
 - `lib/api-spec/openapi.yaml` — API contract source of truth
-- `docs/architecture.md` — milestone architecture and external requirements
+- `docs/ARCHITECTURE.md` — implemented architecture, security boundaries, and release scope
 
 ## Architecture decisions
 
@@ -38,13 +38,13 @@ A Google ADK and Gemini-powered pre-production workspace that turns one filmmake
 - Keep Google credentials server-only and return explicit failures without mock output.
 - Use ADK output schemas plus server validation for every creative deliverable.
 - Signed-in accounts see only their own projects. Guests see only unclaimed projects belonging to their signed browser cookie.
-- Claiming browser projects requires an explicit signed-in confirmation. The account then owns the project and its treatment history; signing out does not restore guest access.
+- Claiming browser projects requires an explicit signed-in confirmation. The account then owns the project and its persisted treatment; signing out does not restore guest access.
 - All browser API authentication is cookie-based. Never add browser bearer-token handling or accept user IDs from request bodies or headers.
 
 ## Product
 
 Milestone 1 accepts a film brief, runs a real Google ADK Creative Director backed by Gemini, and presents the validated creative treatment.
-Projects and treatment history persist in PostgreSQL. Filmmakers can sign in to reopen their account library on another device and claim existing guest projects.
+Projects and validated treatments persist in PostgreSQL. Filmmakers can sign in to reopen their account library on another device and claim existing guest projects. The current generation flow creates one treatment per project.
 
 ## User preferences
 

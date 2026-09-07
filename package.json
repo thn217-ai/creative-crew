@@ -11,6 +11,18 @@
     "validate": "pnpm run typecheck && pnpm run test"
   },
   "private": true,
+  "pnpm": {
+    "overrides": {
+      "@opentelemetry/core": "2.8.0",
+      "adm-zip": "0.6.0",
+      "brace-expansion": "5.0.9",
+      "fast-uri": "3.1.6",
+      "js-yaml": "4.3.1",
+      "nanoid@3": "3.3.18",
+      "qs": "6.16.0",
+      "uuid@9": "11.1.1"
+    }
+  },
   "dependencies": {
     "@replit/connectors-sdk": "^0.4.1"
   },

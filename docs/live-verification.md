@@ -60,3 +60,20 @@ The API log recorded both verification requests as HTTP 200:
 Both requests logged an outbound ADK request using `gemini-3.6-flash` and the
 Gemini API backend. The final browser console contained only the normal Vite
 connection messages.
+
+## Final release verification — September 7, 2026
+
+After the treatment-history and privacy-safe analytics work was merged, the
+real development endpoint was tested again with the Riyadh coffee brief.
+
+- `POST /api/creative-treatment` returned HTTP 201.
+- The returned treatment had non-empty values for every required scalar and
+  list field.
+- Attribution was exactly `google-adk-gemini`.
+- The owner-scoped treatment-list request returned HTTP 200 with one persisted
+  treatment for the newly generated project.
+- No fixture or mocked provider output was used for this check.
+
+This check verifies the implemented brief-to-treatment path. It does not verify
+separate screenplay, storyboard, shot-list, production-plan, specialist-agent,
+or creative-QA stages because those stages are not implemented.

@@ -71,7 +71,7 @@ test("uses the newest-first response as latest when selection is null", () => {
   const html = renderView();
 
   assert.match(html, /2 saved/);
-  assert.match(html, /Viewing version 2 · Latest version/);
+  assert.match(html, /Viewing the latest saved treatment/);
   assert.ok(html.indexOf(revisions[0].id) < html.indexOf(revisions[1].id));
   for (const value of treatmentValues(latestTreatment)) {
     assert.ok(html.includes(value));
@@ -82,7 +82,7 @@ test("uses the newest-first response as latest when selection is null", () => {
 test("renders every field from the exact selected earlier treatment", () => {
   const html = renderView({ selectedRevisionId: revisions[1].id });
 
-  assert.match(html, /Viewing version 1 · Earlier version/);
+  assert.match(html, /Viewing an earlier saved treatment/);
   assert.match(html, /Back to latest/);
   for (const value of treatmentValues(earlierTreatment)) {
     assert.ok(html.includes(value), `expected earlier treatment value: ${value}`);
@@ -103,12 +103,12 @@ test("selects revisions by ID when multiple treatments have the same title", () 
     selectedRevisionId: sameTitleRevisions[1].id,
   });
 
-  assert.match(html, /Viewing version 1 · Earlier version/);
+  assert.match(html, /Viewing an earlier saved treatment/);
   assert.ok(html.includes(earlierTreatment.logline));
   assert.ok(!html.includes(latestTreatment.logline));
   assert.match(
     html,
-    new RegExp(`<option value="${sameTitleRevisions[1].id}" selected="">Version 1`),
+    new RegExp(`<option value="${sameTitleRevisions[1].id}" selected="">Earlier saved treatment`),
   );
 });
 
@@ -116,8 +116,8 @@ test("renders loading safely while revision data is undefined", () => {
   const html = renderView({ revisions: undefined, isPending: true });
 
   assert.match(html, /data-testid="status-versions-loading"/);
-  assert.match(html, /Loading treatment versions/);
-  assert.ok(!html.includes("saved"));
+  assert.match(html, /Loading saved treatment/);
+  assert.ok(!html.includes("0 saved"));
   assert.ok(!html.includes("TREATMENT APPROVED"));
 });
 
@@ -126,7 +126,7 @@ test("renders the validated empty-history state", () => {
 
   assert.match(html, /0 saved/);
   assert.match(html, /data-testid="status-versions-empty"/);
-  assert.match(html, /No validated treatment versions yet/);
+  assert.match(html, /No validated treatment yet/);
   assert.ok(!html.includes("TREATMENT APPROVED"));
 });
 
@@ -140,7 +140,7 @@ test("renders an initial error with an enabled retry control wired to retry", ()
     },
   });
 
-  assert.match(html, /Could not load treatment versions/);
+  assert.match(html, /Could not load the saved treatment/);
   assert.match(html, /data-testid="button-retry-versions"/);
   assert.doesNotMatch(html, /<button[^>]* disabled=""/);
 
@@ -177,8 +177,8 @@ test("retains the exact selected data when a background refresh errors", () => {
     isFetching: false,
   });
 
-  assert.match(html, /Could not refresh treatment versions/);
-  assert.match(html, /Viewing version 1 · Earlier version/);
+  assert.match(html, /Could not refresh saved treatments/);
+  assert.match(html, /Viewing an earlier saved treatment/);
   assert.ok(html.includes(earlierTreatment.logline));
   assert.ok(!html.includes(latestTreatment.logline));
   assert.ok(!html.includes("Refreshing versions"));
@@ -188,8 +188,8 @@ test("does not silently fall back when the explicitly selected ID is missing", (
   const missingId = "33333333-3333-4333-8333-333333333333";
   const html = renderView({ selectedRevisionId: missingId });
 
-  assert.match(html, /Selected version unavailable/);
-  assert.match(html, /This version is no longer available/);
+  assert.match(html, /Selected treatment unavailable/);
+  assert.match(html, /This saved treatment is no longer available/);
   assert.match(html, /Back to latest/);
   assert.ok(!html.includes("TREATMENT APPROVED"));
   assert.ok(!html.includes(latestTreatment.logline));
@@ -222,6 +222,16 @@ test("TreatmentHistory reads prepopulated data from its generated query key", ()
   );
 
   assert.match(html, /2 saved/);
-  assert.match(html, /Viewing version 2 · Latest version/);
+  assert.match(html, /Viewing the latest saved treatment/);
   assert.ok(html.includes(latestTreatment.logline));
+});
+
+test("does not imply a revision workflow when a project has one treatment", () => {
+  const html = renderView({ revisions: [revisions[0]] });
+
+  assert.match(html, /Saved treatment/);
+  assert.match(html, /1 saved/);
+  assert.doesNotMatch(html, /select-treatment-version/);
+  assert.doesNotMatch(html, /Earlier saved treatment/);
+  assert.match(html, /Viewing the latest saved treatment/);
 });

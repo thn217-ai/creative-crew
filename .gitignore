@@ -37,6 +37,24 @@ npm-debug.log
 yarn-error.log
 testem.log
 /typings
+*.zip
+*.tar
+*.tar.gz
+*.tgz
+*.bak
+*.tmp
+*~
+
+# Local and secret configuration
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+*.p12
+*.pfx
+*service-account*.json
+*credentials*.json
 
 # System Files
 .DS_Store
@@ -49,5 +67,5 @@ Thumbs.db
 .cache/
 .local/
 
-# Local workspace export: contains runtime/cache state, not application source.
-/creative-crew.zip
+# User-provided release prompts and other local uploads are not project source.
+/attached_assets/
